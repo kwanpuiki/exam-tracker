@@ -6,573 +6,351 @@
     <title>Exam Studying Tracker</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Recharts -->
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { 
-            BookOpen, Clock, Calendar, CheckSquare, BarChart2, Plus, Play, Pause, 
-            Square, RefreshCw, Trash2, Edit2, Check, AlertCircle, Award, Target, 
-            Settings, Flame, Volume2, Sparkles, ChevronRight, FileText, CheckCircle2 
-        } = lucide;
-
-        function App() {
-            const [activeTab, setActiveTab] = useState('dashboard');
-            const [courses, setCourses] = useState(() => {
-                const saved = localStorage.getItem('exam_courses');
-                return saved ? JSON.parse(saved) : [
-                    { id: '1', name: 'Data Structures & Algorithms', code: 'COMP201', examDate: '2026-06-15T09:00', color: 'blue', targetGrade: 'A' },
-                    { id: '2', name: 'Operating Systems Architecture', code: 'COMP203', examDate: '2026-06-18T14:00', color: 'purple', targetGrade: 'A-' }
-                ];
-            });
-
-            const [studyLogs, setStudyLogs] = useState(() => {
-                const saved = localStorage.getItem('exam_logs');
-                return saved ? JSON.parse(saved) : [];
-            });
-
-            const [tasks, setTasks] = useState(() => {
-                const saved = localStorage.getItem('exam_tasks');
-                return saved ? JSON.parse(saved) : [
-                    { id: 't1', courseId: '1', title: 'Review AVL Trees & Red-Black Trees', completed: false, priority: 'High' },
-                    { id: 't2', courseId: '1', title: 'Practice Graph BFS/DFS questions', completed: true, priority: 'Medium' },
-                    { id: 't3', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false, priority: 'High' }
-                ];
-            });
-
-            // Timer State
-            const [timerActive, setTimerActive] = useState(false);
-            const [timerSeconds, setTimerSeconds] = useState(25 * 60);
-            const [selectedCourseForTimer, setSelectedCourseForTimer] = useState(courses[0]?.id || '');
-            const [timerMode, setTimerMode] = useState('pomodoro'); // pomodoro, shortBreak, stopwatch
-            const [sessionNotes, setSessionNotes] = useState('');
-
-            // Modals
-            const [showAddCourse, setShowAddCourse] = useState(false);
-            const [newCourseName, setNewCourseName] = useState('');
-            const [newCourseCode, setNewCourseCode] = useState('');
-            const [newCourseDate, setNewCourseDate] = useState('');
-            const [newCourseColor, setNewCourseColor] = useState('blue');
-
-            const [newTaskTitle, setNewTaskTitle] = useState('');
-            const [newTaskCourseId, setNewTaskCourseId] = useState(courses[0]?.id || '');
-            const [newTaskPriority, setNewTaskPriority] = useState('Medium');
-
-            // Save to LocalStorage
-            useEffect(() => {
-                localStorage.setItem('exam_courses', JSON.stringify(courses));
-            }, [courses]);
-
-            useEffect(() => {
-                localStorage.setItem('exam_logs', JSON.stringify(studyLogs));
-            }, [studyLogs]);
-
-            useEffect(() => {
-                localStorage.setItem('exam_tasks', JSON.stringify(tasks));
-            }, [tasks]);
-
-            // Timer Hook
-            const timerRef = useRef(null);
-            useEffect(() => {
-                if (timerActive) {
-                    timerRef.current = setInterval(() => {
-                        setTimerSeconds(prev => {
-                            if (timerMode === 'stopwatch') return prev + 1;
-                            if (prev <= 1) {
-                                setTimerActive(false);
-                                playChime();
-                                logCompletedSession();
-                                return 0;
-                            }
-                            return prev - 1;
-                        });
-                    }, 1000);
-                } else {
-                    clearInterval(timerRef.current);
-                }
-                return () => clearInterval(timerRef.current);
-            }, [timerActive, timerMode, selectedCourseForTimer, sessionNotes]);
-
-            const playChime = () => {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 1.5);
-                } catch(e) {}
-            };
-
-            const logCompletedSession = () => {
-                if (!selectedCourseForTimer) return;
-                const durationMinutes = timerMode === 'stopwatch' ? Math.floor(timerSeconds / 60) : (timerMode === 'pomodoro' ? 25 : 5);
-                if (durationMinutes <= 0) return;
-
-                const newLog = {
-                    id: Date.now().toString(),
-                    courseId: selectedCourseForTimer,
-                    duration: durationMinutes,
-                    date: new Date().toISOString().split('T')[0],
-                    notes: sessionNotes || 'Study session'
-                };
-                setStudyLogs(prev => [newLog, ...prev]);
-                setSessionNotes('');
-            };
-
-            const formatTime = (totalSecs) => {
-                const mins = Math.floor(totalSecs / 60);
-                const secs = totalSecs % 60;
-                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            };
-
-            // Add Course
-            const handleAddCourse = (e) => {
-                e.preventDefault();
-                if (!newCourseName) return;
-                const c = {
-                    id: Date.now().toString(),
-                    name: newCourseName,
-                    code: newCourseCode || 'EXAM',
-                    examDate: newCourseDate || new Date(Date.now() + 864000000).toISOString(),
-                    color: newCourseColor,
-                    targetGrade: 'A'
-                };
-                setCourses([...courses, c]);
-                setNewCourseName('');
-                setNewCourseCode('');
-                setNewCourseDate('');
-                setShowAddCourse(false);
-            };
-
-            // Add Task
-            const handleAddTask = (e) => {
-                e.preventDefault();
-                if (!newTaskTitle) return;
-                const t = {
-                    id: Date.now().toString(),
-                    courseId: newTaskCourseId || courses[0]?.id,
-                    title: newTaskTitle,
-                    completed: false,
-                    priority: newTaskPriority
-                };
-                setTasks([...tasks, t]);
-                setNewTaskTitle('');
-            };
-
-            // Calculate Stats
-            const totalStudyMinutes = studyLogs.reduce((acc, curr) => acc + curr.duration, 0);
-            const totalHours = (totalStudyMinutes / 60).toFixed(1);
-            const completedTasksCount = tasks.filter(t => t.completed).length;
-            const taskProgress = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : 0;
-
-            return (
-                <div className="flex flex-col md:flex-row min-h-screen bg-slate-950 text-slate-100 font-sans">
-                    {/* Sidebar */}
-                    <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between">
-                        <div>
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="p-2 bg-blue-600 rounded-xl text-white">
-                                    <BookOpen className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h1 className="font-bold text-lg leading-tight">ExamTracker</h1>
-                                    <p className="text-xs text-slate-400">Study & Revision Hub</p>
-                                </div>
-                            </div>
-
-                            <nav className="space-y-2">
-                                {[
-                                    { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-                                    { id: 'timer', label: 'Study Timer', icon: Clock },
-                                    { id: 'courses', label: 'Courses & Exams', icon: BookOpen },
-                                    { id: 'checklist', label: 'Syllabus Checklist', icon: CheckSquare },
-                                ].map((tab) => {
-                                    const Icon = tab.icon;
-                                    const active = activeTab === tab.id;
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                                                active 
-                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                                                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                                            }`}
-                                        >
-                                            <Icon className="w-5 h-5" />
-                                            {tab.label}
-                                        </button>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-
-                        <div className="pt-6 border-t border-slate-800">
-                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs text-slate-400">Total Study Time</span>
-                                    <Flame className="w-4 h-4 text-orange-500" />
-                                </div>
-                                <div className="text-2xl font-bold text-white">{totalHours} <span className="text-xs font-normal text-slate-400">hrs</span></div>
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* Main Content Area */}
-                    <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-                        {/* DASHBOARD TAB */}
-                        {activeTab === 'dashboard' && (
-                            <div className="space-y-8 max-w-5xl mx-auto">
-                                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-3xl font-extrabold tracking-tight">Study Dashboard</h2>
-                                        <p className="text-slate-400 text-sm mt-1">Track your upcoming exams, study progress, and daily goals.</p>
-                                    </div>
-                                    <button 
-                                        onClick={() => setActiveTab('timer')}
-                                        className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20"
-                                    >
-                                        <Play className="w-4 h-4" /> Start Focus Session
-                                    </button>
-                                </header>
-
-                                {/* Metric Cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-400">Active Courses</span>
-                                            <BookOpen className="w-5 h-5 text-blue-500" />
-                                        </div>
-                                        <div className="text-3xl font-bold mt-4">{courses.length}</div>
-                                    </div>
-                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-400">Syllabus Completed</span>
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                        </div>
-                                        <div className="text-3xl font-bold mt-4">{taskProgress}%</div>
-                                    </div>
-                                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-400">Total Logged Time</span>
-                                            <Clock className="w-5 h-5 text-purple-500" />
-                                        </div>
-                                        <div className="text-3xl font-bold mt-4">{totalHours} <span className="text-sm font-normal text-slate-400">hrs</span></div>
-                                    </div>
-                                </div>
-
-                                {/* Upcoming Exams & Countdowns */}
-                                <div>
-                                    <h3 className="text-xl font-bold mb-4">Upcoming Exams</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {courses.map(course => {
-                                            const examDateObj = new Date(course.examDate);
-                                            const daysLeft = Math.ceil((examDateObj - new Date()) / (1000 * 60 * 60 * 24));
-                                            return (
-                                                <div key={course.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
-                                                    <div>
-                                                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                            {course.code}
-                                                        </span>
-                                                        <h4 className="font-bold text-lg mt-2">{course.name}</h4>
-                                                        <p className="text-xs text-slate-400 mt-1">Exam Date: {new Date(course.examDate).toLocaleDateString()}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-2xl font-black text-blue-400">{daysLeft >= 0 ? daysLeft : 0}</div>
-                                                        <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Days Left</div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* TIMER TAB */}
-                        {activeTab === 'timer' && (
-                            <div className="max-w-2xl mx-auto space-y-8">
-                                <header className="text-center">
-                                    <h2 className="text-3xl font-extrabold tracking-tight">Focus Study Timer</h2>
-                                    <p className="text-slate-400 text-sm mt-1">Boost productivity with dedicated study intervals and automatic logs.</p>
-                                </header>
-
-                                <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center shadow-xl space-y-6">
-                                    {/* Mode selector */}
-                                    <div className="flex justify-center gap-2 bg-slate-950 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
-                                        {[
-                                            { id: 'pomodoro', label: 'Pomodoro (25m)', time: 25 * 60 },
-                                            { id: 'shortBreak', label: 'Break (5m)', time: 5 * 60 },
-                                            { id: 'stopwatch', label: 'Stopwatch', time: 0 }
-                                        ].map(m => (
-                                            <button
-                                                key={m.id}
-                                                onClick={() => {
-                                                    setTimerMode(m.id);
-                                                    setTimerSeconds(m.time);
-                                                    setTimerActive(false);
-                                                }}
-                                                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition ${
-                                                    timerMode === m.id ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                                                }`}
-                                            >
-                                                {m.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Course Selector */}
-                                    <div className="max-w-xs mx-auto">
-                                        <label className="block text-xs font-medium text-slate-400 mb-1">Select Course to Track</label>
-                                        <select 
-                                            value={selectedCourseForTimer}
-                                            onChange={(e) => setSelectedCourseForTimer(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                                        >
-                                            {courses.map(c => (
-                                                <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Timer Display */}
-                                    <div className="py-6">
-                                        <div className="text-7xl md:text-8xl font-black tracking-tighter text-white font-mono">
-                                            {timerMode === 'stopwatch' ? formatTime(timerSeconds) : formatTime(timerSeconds)}
-                                        </div>
-                                    </div>
-
-                                    {/* Controls */}
-                                    <div className="flex items-center justify-center gap-4">
-                                        <button
-                                            onClick={() => setTimerActive(!timerActive)}
-                                            className={`inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg transition shadow-lg ${
-                                                timerActive 
-                                                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20' 
-                                                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
-                                            }`}
-                                        >
-                                            {timerActive ? <><Pause className="w-5 h-5"/> Pause</> : <><Play className="w-5 h-5"/> Start Focus</>}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setTimerActive(false);
-                                                if (timerMode === 'pomodoro') setTimerSeconds(25 * 60);
-                                                else if (timerMode === 'shortBreak') setTimerSeconds(5 * 60);
-                                                else setTimerSeconds(0);
-                                            }}
-                                            className="p-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl transition"
-                                            title="Reset"
-                                        >
-                                            <RefreshCw className="w-5 h-5" />
-                                        </button>
-                                    </div>
-
-                                    {/* Optional Notes */}
-                                    <div className="max-w-md mx-auto pt-4">
-                                        <input 
-                                            type="text"
-                                            placeholder="What are you focusing on in this session? (optional)"
-                                            value={sessionNotes}
-                                            onChange={(e) => setSessionNotes(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-500"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* COURSES TAB */}
-                        {activeTab === 'courses' && (
-                            <div className="max-w-5xl mx-auto space-y-8">
-                                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-3xl font-extrabold tracking-tight">Courses & Exams</h2>
-                                        <p className="text-slate-400 text-sm mt-1">Manage your subjects and scheduled exam timelines.</p>
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowAddCourse(true)}
-                                        className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20"
-                                    >
-                                        <Plus className="w-4 h-4" /> Add Course
-                                    </button>
-                                </header>
-
-                                {/* Add Course Modal / Form */}
-                                {showAddCourse && (
-                                    <form onSubmit={handleAddCourse} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                                        <h3 className="text-lg font-bold">Add New Course</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1">Course Name</label>
-                                                <input 
-                                                    type="text" 
-                                                    required
-                                                    placeholder="e.g. Computer Networks"
-                                                    value={newCourseName}
-                                                    onChange={e => setNewCourseName(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1">Course Code</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="e.g. COMP302"
-                                                    value={newCourseCode}
-                                                    onChange={e => setNewCourseCode(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-1">Exam Date & Time</label>
-                                                <input 
-                                                    type="datetime-local" 
-                                                    value={newCourseDate}
-                                                    onChange={e => setNewCourseDate(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end gap-3 pt-2">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowAddCourse(false)}
-                                                className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button 
-                                                type="submit" 
-                                                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition"
-                                            >
-                                                Save Course
-                                            </button>
-                                        </div>
-                                    </form>
-                                )}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {courses.map(course => (
-                                        <div key={course.id} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-                                            <div>
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                        {course.code}
-                                                    </span>
-                                                    <button 
-                                                        onClick={() => setCourses(courses.filter(c => c.id !== course.id))}
-                                                        className="text-slate-500 hover:text-red-400 transition"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <h3 className="text-xl font-bold">{course.name}</h3>
-                                                <p className="text-sm text-slate-400 mt-1">Exam: {new Date(course.examDate).toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CHECKLIST TAB */}
-                        {activeTab === 'checklist' && (
-                            <div className="max-w-5xl mx-auto space-y-8">
-                                <header>
-                                    <h2 className="text-3xl font-extrabold tracking-tight">Syllabus Checklist</h2>
-                                    <p className="text-slate-400 text-sm mt-1">Break down your study topics and check them off as you master them.</p>
-                                </header>
-
-                                {/* Add Task Form */}
-                                <form onSubmit={handleAddTask} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row gap-3">
-                                    <input 
-                                        type="text" 
-                                        required
-                                        placeholder="Add a new topic or revision task..."
-                                        value={newTaskTitle}
-                                        onChange={e => setNewTaskTitle(e.target.value)}
-                                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                                    />
-                                    <select 
-                                        value={newTaskCourseId}
-                                        onChange={e => setNewTaskCourseId(e.target.value)}
-                                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                                    >
-                                        {courses.map(c => (
-                                            <option key={c.id} value={c.id}>{c.code}</option>
-                                        ))}
-                                    </select>
-                                    <button 
-                                        type="submit"
-                                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-lg shadow-blue-600/20"
-                                    >
-                                        Add Task
-                                    </button>
-                                </form>
-
-                                {/* Task List */}
-                                <div className="space-y-3">
-                                    {tasks.map(task => {
-                                        const course = courses.find(c => c.id === task.courseId);
-                                        return (
-                                            <div 
-                                                key={task.id} 
-                                                className={`bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between transition ${task.completed ? 'opacity-60' : ''}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={task.completed}
-                                                        onChange={() => {
-                                                            setTasks(tasks.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t));
-                                                        }}
-                                                        className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
-                                                    />
-                                                    <div>
-                                                        <p className={`font-medium text-sm ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
-                                                            {task.title}
-                                                        </p>
-                                                        {course && (
-                                                            <span className="text-xs text-blue-400 font-semibold">{course.code} - {course.name}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <button 
-                                                    onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
-                                                    className="text-slate-500 hover:text-red-400 transition"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </main>
+<body class="min-h-screen flex flex-col md:flex-row">
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-8">
+                <div class="p-2 bg-blue-600 rounded-xl text-white font-bold">📖</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">ExamTracker</h1>
+                    <p class="text-xs text-slate-400">Study & Revision Hub</p>
                 </div>
-            );
+            </div>
+
+            <nav class="space-y-2">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-blue-600 text-white shadow-lg">📊 Dashboard</button>
+                <button onclick="switchTab('timer')" id="nav-timer" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">⏱️ Study Timer</button>
+                <button onclick="switchTab('courses')" id="nav-courses" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📚 Courses & Exams</button>
+                <button onclick="switchTab('checklist')" id="nav-checklist" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">✅ Syllabus Checklist</button>
+            </nav>
+        </div>
+
+        <div class="pt-6 border-t border-slate-800">
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs text-slate-400">Total Study Time</span>
+                    <span>🔥</span>
+                </div>
+                <div class="text-2xl font-bold text-white"><span id="total-hours">0.0</span> <span class="text-xs font-normal text-slate-400">hrs</span></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="space-y-8 max-w-5xl mx-auto">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Study Dashboard</h2>
+                    <p class="text-slate-400 text-sm mt-1">Track your upcoming exams, study progress, and daily goals.</p>
+                </div>
+                <button onclick="switchTab('timer')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">▶ Start Focus Session</button>
+            </header>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <span class="text-sm font-medium text-slate-400">Active Courses</span>
+                    <div id="stat-courses" class="text-3xl font-bold mt-4">0</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <span class="text-sm font-medium text-slate-400">Syllabus Completed</span>
+                    <div id="stat-progress" class="text-3xl font-bold mt-4">0%</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <span class="text-sm font-medium text-slate-400">Total Logged Time</span>
+                    <div id="stat-hours" class="text-3xl font-bold mt-4">0.0 hrs</div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold mb-4">Upcoming Exams</h3>
+                <div id="dashboard-exams" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- TIMER TAB -->
+        <div id="tab-timer" class="space-y-8 max-w-2xl mx-auto hidden">
+            <header class="text-center">
+                <h2 class="text-3xl font-extrabold tracking-tight">Focus Study Timer</h2>
+                <p class="text-slate-400 text-sm mt-1">Boost productivity with dedicated study intervals and automatic logs.</p>
+            </header>
+
+            <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center shadow-xl space-y-6">
+                <div class="flex justify-center gap-2 bg-slate-950 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
+                    <button onclick="setTimerMode('pomodoro')" id="mode-pomo" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white">Pomodoro (25m)</button>
+                    <button onclick="setTimerMode('break')" id="mode-break" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Break (5m)</button>
+                    <button onclick="setTimerMode('stopwatch')" id="mode-stop" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Stopwatch</button>
+                </div>
+
+                <div class="max-w-xs mx-auto">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Select Course to Track</label>
+                    <select id="timer-course-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"></select>
+                </div>
+
+                <div class="py-6">
+                    <div id="timer-display" class="text-7xl md:text-8xl font-black tracking-tighter text-white font-mono">25:00</div>
+                </div>
+
+                <div class="flex items-center justify-center gap-4">
+                    <button onclick="toggleTimer()" id="timer-toggle-btn" class="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-lg shadow-lg">▶ Start Focus</button>
+                    <button onclick="resetTimer()" class="p-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl">🔄</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COURSES TAB -->
+        <div id="tab-courses" class="space-y-8 max-w-5xl mx-auto hidden">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Courses & Exams</h2>
+                    <p class="text-slate-400 text-sm mt-1">Manage your subjects and scheduled exam timelines.</p>
+                </div>
+                <button onclick="toggleAddCourseModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium">+ Add Course</button>
+            </header>
+
+            <div id="add-course-form" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+                <h3 class="text-lg font-bold">Add New Course</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="new-c-name" placeholder="Course Name (e.g. Data Structures)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+                    <input type="text" id="new-c-code" placeholder="Course Code (e.g. COMP201)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+                    <input type="datetime-local" id="new-c-date" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button onclick="toggleAddCourseModal()" class="px-4 py-2 text-sm bg-slate-800 rounded-xl">Cancel</button>
+                    <button onclick="addCourse()" class="px-4 py-2 text-sm bg-blue-600 rounded-xl">Save Course</button>
+                </div>
+            </div>
+
+            <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </div>
+
+        <!-- CHECKLIST TAB -->
+        <div id="tab-checklist" class="space-y-8 max-w-5xl mx-auto hidden">
+            <header>
+                <h2 class="text-3xl font-extrabold tracking-tight">Syllabus Checklist</h2>
+                <p class="text-slate-400 text-sm mt-1">Break down your study topics and check them off.</p>
+            </header>
+
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row gap-3">
+                <input type="text" id="new-task-title" placeholder="Add a new topic or revision task..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+                <select id="new-task-course" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"></select>
+                <button onclick="addTask()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium">Add Task</button>
+            </div>
+
+            <div id="tasks-list" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <script>
+        // State Management
+        let courses = JSON.parse(localStorage.getItem('exam_courses')) || [
+            { id: '1', name: 'Data Structures & Algorithms', code: 'COMP201', examDate: '2026-06-15T09:00' },
+            { id: '2', name: 'Operating Systems', code: 'COMP203', examDate: '2026-06-18T14:00' }
+        ];
+        let tasks = JSON.parse(localStorage.getItem('exam_tasks')) || [
+            { id: 't1', courseId: '1', title: 'Review AVL Trees & Red-Black Trees', completed: false },
+            { id: 't2', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false }
+        ];
+        let logs = JSON.parse(localStorage.getItem('exam_logs')) || [];
+
+        let currentTab = 'dashboard';
+        let timerMode = 'pomodoro';
+        let timerSeconds = 25 * 60;
+        let timerActive = false;
+        let timerInterval = null;
+
+        function saveData() {
+            localStorage.setItem('exam_courses', JSON.stringify(courses));
+            localStorage.setItem('exam_tasks', JSON.stringify(tasks));
+            localStorage.setItem('exam_logs', JSON.stringify(logs));
+            renderAll();
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        function switchTab(tab) {
+            currentTab = tab;
+            ['dashboard', 'timer', 'courses', 'checklist'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+                document.getElementById(`nav-${t}`).className = t === tab 
+                    ? 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-blue-600 text-white shadow-lg' 
+                    : 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+            });
+            renderAll();
+        }
+
+        function renderAll() {
+            // Stats
+            const totalMins = logs.reduce((acc, curr) => acc + curr.duration, 0);
+            const totalHrs = (totalMins / 60).toFixed(1);
+            document.getElementById('total-hours').innerText = totalHrs;
+            document.getElementById('stat-hours').innerText = totalHrs + ' hrs';
+            document.getElementById('stat-courses').innerText = courses.length;
+            
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+            document.getElementById('stat-progress').innerText = progress + '%';
+
+            // Dashboard Exams
+            document.getElementById('dashboard-exams').innerHTML = courses.map(c => {
+                const days = Math.ceil((new Date(c.examDate) - new Date()) / (1000 * 60 * 60 * 24));
+                return `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${c.code}</span>
+                        <h4 class="font-bold text-lg mt-2">${c.name}</h4>
+                        <p class="text-xs text-slate-400 mt-1">${new Date(c.examDate).toLocaleDateString()}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-black text-blue-400">${days >= 0 ? days : 0}</div>
+                        <div class="text-xs text-slate-400 uppercase font-semibold">Days Left</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Course Selectors
+            const courseOptions = courses.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
+            document.getElementById('timer-course-select').innerHTML = courseOptions;
+            document.getElementById('new-task-course').innerHTML = courseOptions;
+
+            // Courses Grid
+            document.getElementById('courses-grid').innerHTML = courses.map(c => `
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400">${c.code}</span>
+                            <button onclick="deleteCourse('${c.id}')" class="text-slate-500 hover:text-red-400">🗑️</button>
+                        </div>
+                        <h3 class="text-xl font-bold">${c.name}</h3>
+                        <p class="text-sm text-slate-400 mt-1">Exam: ${new Date(c.examDate).toLocaleString()}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Tasks List
+            document.getElementById('tasks-list').innerHTML = tasks.map(t => {
+                const c = courses.find(x => x.id === t.courseId);
+                return `
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between ${t.completed ? 'opacity-60' : ''}">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="w-5 h-5 accent-blue-600 rounded">
+                            <div>
+                                <p class="font-medium text-sm ${t.completed ? 'line-through text-slate-500' : 'text-white'}">${t.title}</p>
+                                ${c ? `<span class="text-xs text-blue-400 font-semibold">${c.code}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="deleteTask('${t.id}')" class="text-slate-500 hover:text-red-400">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Timer Functions
+        function setTimerMode(mode) {
+            timerMode = mode;
+            timerActive = false;
+            clearInterval(timerInterval);
+            if (mode === 'pomodoro') timerSeconds = 25 * 60;
+            else if (mode === 'break') timerSeconds = 5 * 60;
+            else timerSeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('mode-pomo').className = mode === 'pomodoro' ? 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white' : 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400';
+            document.getElementById('mode-break').className = mode === 'break' ? 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white' : 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400';
+            document.getElementById('mode-stop').className = mode === 'stopwatch' ? 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white' : 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400';
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timerSeconds / 60);
+            const secs = timerSeconds % 60;
+            document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            timerActive = !timerActive;
+            const btn = document.getElementById('timer-toggle-btn');
+            btn.innerText = timerActive ? '⏸ Pause' : '▶ Start Focus';
+            btn.className = timerActive ? 'px-8 py-4 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg' : 'px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg';
+
+            if (timerActive) {
+                timerInterval = setInterval(() => {
+                    if (timerMode === 'stopwatch') {
+                        timerSeconds++;
+                    } else {
+                        if (timerSeconds <= 1) {
+                            timerActive = false;
+                            clearInterval(timerInterval);
+                            alert('Session completed! Logged 25 mins.');
+                            logs.unshift({ id: Date.now(), courseId: document.getElementById('timer-course-select').value, duration: 25 });
+                            saveData();
+                            return;
+                        }
+                        timerSeconds--;
+                    }
+                    updateTimerDisplay();
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+            }
+        }
+
+        function resetTimer() {
+            timerActive = false;
+            clearInterval(timerInterval);
+            if (timerMode === 'pomodoro') timerSeconds = 25 * 60;
+            else if (timerMode === 'break') timerSeconds = 5 * 60;
+            else timerSeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('timer-toggle-btn').innerText = '▶ Start Focus';
+            document.getElementById('timer-toggle-btn').className = 'px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg';
+        }
+
+        // Actions
+        function toggleAddCourseModal() {
+            const f = document.getElementById('add-course-form');
+            f.classList.toggle('hidden');
+        }
+
+        function addCourse() {
+            const name = document.getElementById('new-c-name').value;
+            const code = document.getElementById('new-c-code').value || 'EXAM';
+            const date = document.getElementById('new-c-date').value || new Date().toISOString();
+            if (!name) return;
+            courses.push({ id: Date.now().toString(), name, code, examDate: date });
+            document.getElementById('new-c-name').value = '';
+            document.getElementById('new-c-code').value = '';
+            toggleAddCourseModal();
+            saveData();
+        }
+
+        function deleteCourse(id) {
+            courses = courses.filter(c => c.id !== id);
+            saveData();
+        }
+
+        function addTask() {
+            const title = document.getElementById('new-task-title').value;
+            const courseId = document.getElementById('new-task-course').value;
+            if (!title) return;
+            tasks.push({ id: Date.now().toString(), courseId, title, completed: false });
+            document.getElementById('new-task-title').value = '';
+            saveData();
+        }
+
+        function toggleTask(id) {
+            tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            saveData();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveData();
+        }
+
+        // Initialize
+        renderAll();
     </script>
 </body>
 </html>
