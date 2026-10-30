@@ -29,6 +29,7 @@
                 <button onclick="switchTab('timer')" id="nav-timer" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">⏱️ Study Timer</button>
                 <button onclick="switchTab('courses')" id="nav-courses" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📚 Courses & PDFs</button>
                 <button onclick="switchTab('checklist')" id="nav-checklist" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">✅ Syllabus Checklist</button>
+                <button onclick="switchTab('journal')" id="nav-journal" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📝 Study Journal & Notes</button>
             </nav>
         </div>
 
@@ -147,6 +148,61 @@
 
             <div id="tasks-list" class="space-y-3"></div>
         </div>
+
+        <!-- JOURNAL / REFLECTION TAB -->
+        <div id="tab-journal" class="space-y-8 max-w-5xl mx-auto hidden">
+            <header>
+                <h2 class="text-3xl font-extrabold tracking-tight">Daily Study Reflections & Notes</h2>
+                <p class="text-slate-400 text-sm mt-1">Reflect on your daily focus, note down tricky questions, and track your mindset.</p>
+            </header>
+
+            <!-- New Reflection Form -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span>✨</span> New Daily Reflection
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">How was your study attitude today?</label>
+                        <select id="note-attitude" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="🔥 Super Focused & Productive">🔥 Super Focused & Productive</option>
+                            <option value="⚡ Good Effort / Solid Progress">⚡ Good Effort / Solid Progress</option>
+                            <option value="😐 Average / Slightly Distracted">😐 Average / Slightly Distracted</option>
+                            <option value="😫 Tired / Struggled to Focus">😫 Tired / Struggled to Focus</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Related Course (Optional)</label>
+                        <select id="note-course" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="">General Reflection</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">What questions or concepts challenged you today?</label>
+                    <textarea id="note-challenges" rows="2" placeholder="e.g., Struggled with Dijkstra algorithm edge cases, or couldn't derive the reaction mechanism for Q3..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Key Takeaways & Thoughts</label>
+                    <textarea id="note-summary" rows="2" placeholder="e.g., Need to re-read Chapter 4 tomorrow. Practiced 10 past paper questions..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <div class="flex justify-end">
+                    <button onclick="addJournalEntry()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20 text-sm">
+                        Save Entry
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved Entries List -->
+            <div class="space-y-4">
+                <h3 class="text-xl font-bold">Previous Reflections</h3>
+                <div id="journal-entries-list" class="space-y-4"></div>
+            </div>
+        </div>
     </main>
 
     <!-- PDF READER MODAL -->
@@ -195,6 +251,7 @@
             { id: 't2', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false }
         ];
         let logs = JSON.parse(localStorage.getItem('exam_logs')) || [];
+        let journalEntries = JSON.parse(localStorage.getItem('exam_journal')) || [];
 
         // PDF Reader State Variables
         let pdfDocs = {};
@@ -209,12 +266,13 @@
             localStorage.setItem('exam_courses', JSON.stringify(courses));
             localStorage.setItem('exam_tasks', JSON.stringify(tasks));
             localStorage.setItem('exam_logs', JSON.stringify(logs));
+            localStorage.setItem('exam_journal', JSON.stringify(journalEntries));
             renderAll();
         }
 
         function switchTab(tab) {
             currentTab = tab;
-            ['dashboard', 'timer', 'courses', 'checklist'].forEach(t => {
+            ['dashboard', 'timer', 'courses', 'checklist', 'journal'].forEach(t => {
                 const tabEl = document.getElementById(`tab-${t}`);
                 const navEl = document.getElementById(`nav-${t}`);
                 if (tabEl) {
@@ -275,6 +333,9 @@
 
             const elTaskSelect = document.getElementById('new-task-course');
             if (elTaskSelect) elTaskSelect.innerHTML = courseOptions;
+
+            const elJournalCourseSelect = document.getElementById('note-course');
+            if (elJournalCourseSelect) elJournalCourseSelect.innerHTML = `<option value="">General Reflection</option>` + courseOptions;
 
             // Fetch stored PDFs list from IndexedDB
             const storedPdfs = await getAllPdfsFromDB();
@@ -344,6 +405,76 @@
                     `;
                 }).join('');
             }
+
+            // Journal Entries List
+            const elJournalList = document.getElementById('journal-entries-list');
+            if (elJournalList) {
+                if (journalEntries.length === 0) {
+                    elJournalList.innerHTML = `<p class="text-slate-500 text-sm italic">No reflections recorded yet. Fill out the form above to log today's study mood!</p>`;
+                } else {
+                    elJournalList.innerHTML = journalEntries.map(e => {
+                        const c = courses.find(x => x.id === e.courseId);
+                        return `
+                            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${e.attitude}</span>
+                                        ${c ? `<span class="text-xs font-semibold text-slate-400">(${c.code})</span>` : ''}
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-slate-500">${e.date}</span>
+                                        <button onclick="deleteJournalEntry('${e.id}')" class="text-slate-500 hover:text-red-400 text-xs">🗑️</button>
+                                    </div>
+                                </div>
+                                ${e.challenges ? `
+                                    <div>
+                                        <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">❓ Challenging Questions / Concepts:</h4>
+                                        <p class="text-sm text-slate-200 bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">${e.challenges}</p>
+                                    </div>
+                                ` : ''}
+                                ${e.summary ? `
+                                    <div>
+                                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">📝 Takeaways & Summary:</h4>
+                                        <p class="text-sm text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/60">${e.summary}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        // Journal Logic
+        function addJournalEntry() {
+            const attitude = document.getElementById('note-attitude').value;
+            const courseId = document.getElementById('note-course').value;
+            const challenges = document.getElementById('note-challenges').value.trim();
+            const summary = document.getElementById('note-summary').value.trim();
+
+            if (!challenges && !summary) {
+                alert("Please add notes in either the challenges or takeaways section.");
+                return;
+            }
+
+            const entry = {
+                id: 'note_' + Date.now(),
+                date: new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                attitude,
+                courseId,
+                challenges,
+                summary
+            };
+
+            journalEntries.unshift(entry);
+            document.getElementById('note-challenges').value = '';
+            document.getElementById('note-summary').value = '';
+            saveData();
+        }
+
+        function deleteJournalEntry(id) {
+            journalEntries = journalEntries.filter(e => e.id !== id);
+            saveData();
         }
 
         // PDF IndexedDB Handlers
