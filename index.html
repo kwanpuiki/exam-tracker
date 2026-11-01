@@ -28,7 +28,7 @@
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-blue-600 text-white shadow-lg">📊 Dashboard</button>
                 <button onclick="switchTab('timer')" id="nav-timer" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">⏱️ Study Timer</button>
                 <button onclick="switchTab('courses')" id="nav-courses" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📚 Courses & PDFs</button>
-                <button onclick="switchTab('checklist')" id="nav-checklist" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">✅ Syllabus Checklist</button>
+                <button onclick="switchTab('checklist')" id="nav-checklist" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">✅ Topics & Mastery %</button>
                 <button onclick="switchTab('journal')" id="nav-journal" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📝 Study Journal & Notes</button>
             </nav>
         </div>
@@ -51,7 +51,7 @@
             <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-3xl font-extrabold tracking-tight">Study Dashboard</h2>
-                    <p class="text-slate-400 text-sm mt-1">Track your upcoming exams, study progress, and daily goals.</p>
+                    <p class="text-slate-400 text-sm mt-1">Track your upcoming exams, topic confidence levels, and daily goals.</p>
                 </div>
                 <button onclick="switchTab('timer')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">▶ Start Focus Session</button>
             </header>
@@ -62,7 +62,7 @@
                     <div id="stat-courses" class="text-3xl font-bold mt-4">0</div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-                    <span class="text-sm font-medium text-slate-400">Syllabus Completed</span>
+                    <span class="text-sm font-medium text-slate-400">Avg. Topic Understanding</span>
                     <div id="stat-progress" class="text-3xl font-bold mt-4">0%</div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
@@ -81,14 +81,33 @@
         <div id="tab-timer" class="space-y-8 max-w-2xl mx-auto hidden">
             <header class="text-center">
                 <h2 class="text-3xl font-extrabold tracking-tight">Focus Study Timer</h2>
-                <p class="text-slate-400 text-sm mt-1">Boost productivity with dedicated study intervals and automatic logs.</p>
+                <p class="text-slate-400 text-sm mt-1">Customize timer lengths and boost study productivity.</p>
             </header>
 
             <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center shadow-xl space-y-6">
+                <!-- Mode Selector -->
                 <div class="flex justify-center gap-2 bg-slate-950 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
-                    <button onclick="setTimerMode('pomodoro')" id="mode-pomo" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white">Pomodoro (25m)</button>
-                    <button onclick="setTimerMode('break')" id="mode-break" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Break (5m)</button>
+                    <button onclick="setTimerMode('pomodoro')" id="mode-pomo" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white">Pomodoro</button>
+                    <button onclick="setTimerMode('break')" id="mode-break" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Break</button>
                     <button onclick="setTimerMode('stopwatch')" id="mode-stop" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Stopwatch</button>
+                </div>
+
+                <!-- Timer Customization Settings -->
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 max-w-md mx-auto flex items-center justify-around text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Pomo (mins)</label>
+                        <input type="number" id="setting-pomo" value="25" min="1" max="180" onchange="updateTimerSettings()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-center font-bold text-blue-400 focus:outline-none">
+                    </div>
+                    <div class="border-r border-slate-800 h-8"></div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Break (mins)</label>
+                        <input type="number" id="setting-break" value="5" min="1" max="60" onchange="updateTimerSettings()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-center font-bold text-emerald-400 focus:outline-none">
+                    </div>
+                    <div class="border-r border-slate-800 h-8"></div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Stopwatch Target</label>
+                        <input type="number" id="setting-stop" value="60" min="1" max="300" onchange="updateTimerSettings()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-center font-bold text-purple-400 focus:outline-none">
+                    </div>
                 </div>
 
                 <div class="max-w-xs mx-auto">
@@ -96,7 +115,7 @@
                     <select id="timer-course-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"></select>
                 </div>
 
-                <div class="py-6">
+                <div class="py-4">
                     <div id="timer-display" class="text-7xl md:text-8xl font-black tracking-tighter text-white font-mono">25:00</div>
                 </div>
 
@@ -133,20 +152,20 @@
             <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
 
-        <!-- CHECKLIST TAB -->
+        <!-- CHECKLIST / MASTERY SLIDER TAB -->
         <div id="tab-checklist" class="space-y-8 max-w-5xl mx-auto hidden">
             <header>
-                <h2 class="text-3xl font-extrabold tracking-tight">Syllabus Checklist</h2>
-                <p class="text-slate-400 text-sm mt-1">Break down your study topics and check them off.</p>
+                <h2 class="text-3xl font-extrabold tracking-tight">Topics & Mastery Confidence (0 - 100%)</h2>
+                <p class="text-slate-400 text-sm mt-1">Self-evaluate if you truly have 100% understanding of each topic using the sliders below.</p>
             </header>
 
             <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row gap-3">
-                <input type="text" id="new-task-title" placeholder="Add a new topic or revision task..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+                <input type="text" id="new-task-title" placeholder="Add a new topic to evaluate..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
                 <select id="new-task-course" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"></select>
-                <button onclick="addTask()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium">Add Task</button>
+                <button onclick="addTask()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium">Add Topic</button>
             </div>
 
-            <div id="tasks-list" class="space-y-3"></div>
+            <div id="tasks-list" class="space-y-4"></div>
         </div>
 
         <!-- JOURNAL / REFLECTION TAB -->
@@ -156,7 +175,6 @@
                 <p class="text-slate-400 text-sm mt-1">Reflect on your daily focus, note down tricky questions, and track your mindset.</p>
             </header>
 
-            <!-- New Reflection Form -->
             <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
                     <span>✨</span> New Daily Reflection
@@ -197,7 +215,6 @@
                 </div>
             </div>
 
-            <!-- Saved Entries List -->
             <div class="space-y-4">
                 <h3 class="text-xl font-bold">Previous Reflections</h3>
                 <div id="journal-entries-list" class="space-y-4"></div>
@@ -248,14 +265,26 @@
         ];
         let folders = JSON.parse(localStorage.getItem('exam_folders')) || [];
         let tasks = JSON.parse(localStorage.getItem('exam_tasks')) || [
-            { id: 't1', courseId: '1', title: 'Review AVL Trees & Red-Black Trees', completed: false },
-            { id: 't2', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false }
+            { id: 't1', courseId: '1', title: 'Review AVL Trees & Red-Black Trees', completed: false, mastery: 85 },
+            { id: 't2', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false, mastery: 40 }
         ];
         let logs = JSON.parse(localStorage.getItem('exam_logs')) || [];
         let journalEntries = JSON.parse(localStorage.getItem('exam_journal')) || [];
 
+        // Custom Timer Durations State
+        let timerSettings = JSON.parse(localStorage.getItem('exam_timer_settings')) || {
+            pomoMins: 25,
+            breakMins: 5,
+            stopMins: 60
+        };
+
+        let currentTab = 'dashboard';
+        let timerMode = 'pomodoro';
+        let timerSeconds = timerSettings.pomoMins * 60;
+        let timerActive = false;
+        let timerInterval = null;
+
         // PDF Reader State Variables
-        let pdfDocs = {};
         let currentPdfDoc = null;
         let currentPdfPage = 1;
         let pdfRendering = false;
@@ -263,13 +292,14 @@
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Bind core functions to global window object so inline onclick listeners find them
+        // Global function bindings
         window.saveData = function saveData() {
             localStorage.setItem('exam_courses', JSON.stringify(courses));
             localStorage.setItem('exam_folders', JSON.stringify(folders));
             localStorage.setItem('exam_tasks', JSON.stringify(tasks));
             localStorage.setItem('exam_logs', JSON.stringify(logs));
             localStorage.setItem('exam_journal', JSON.stringify(journalEntries));
+            localStorage.setItem('exam_timer_settings', JSON.stringify(timerSettings));
             renderAll();
         };
 
@@ -286,6 +316,33 @@
                 }
             });
             renderAll();
+        };
+
+        // Custom Timer Settings
+        window.updateTimerSettings = function updateTimerSettings() {
+            const pomoVal = parseInt(document.getElementById('setting-pomo').value) || 25;
+            const breakVal = parseInt(document.getElementById('setting-break').value) || 5;
+            const stopVal = parseInt(document.getElementById('setting-stop').value) || 60;
+
+            timerSettings = { pomoMins: pomoVal, breakMins: breakVal, stopMins: stopVal };
+            saveData();
+            if (!timerActive) {
+                if (timerMode === 'pomodoro') timerSeconds = pomoVal * 60;
+                else if (timerMode === 'break') timerSeconds = breakVal * 60;
+                updateTimerDisplay();
+            }
+        };
+
+        // Mastery Slider Handler
+        window.updateTaskMastery = function updateTaskMastery(taskId, value) {
+            const numVal = parseInt(value) || 0;
+            tasks = tasks.map(t => {
+                if (t.id === taskId) {
+                    return { ...t, mastery: numVal, completed: numVal === 100 };
+                }
+                return t;
+            });
+            saveData();
         };
 
         window.createFolder = function createFolder(courseId) {
@@ -322,6 +379,14 @@
         };
 
         window.renderAll = async function renderAll() {
+            // Populate Timer Settings inputs if on screen
+            const elPomoInput = document.getElementById('setting-pomo');
+            if (elPomoInput) elPomoInput.value = timerSettings.pomoMins;
+            const elBreakInput = document.getElementById('setting-break');
+            if (elBreakInput) elBreakInput.value = timerSettings.breakMins;
+            const elStopInput = document.getElementById('setting-stop');
+            if (elStopInput) elStopInput.value = timerSettings.stopMins;
+
             // Stats & calculations safely guarded
             const totalMins = logs.reduce((acc, curr) => acc + (curr.duration || 0), 0);
             const totalHrs = (totalMins / 60).toFixed(1);
@@ -335,20 +400,28 @@
             const elStatCourses = document.getElementById('stat-courses');
             if (elStatCourses) elStatCourses.innerText = courses.length;
 
-            const completedTasks = tasks.filter(t => t.completed).length;
-            const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+            // Calculate overall understanding percentage across all topics
+            const totalMastery = tasks.reduce((acc, curr) => acc + (curr.mastery || 0), 0);
+            const avgMastery = tasks.length > 0 ? Math.round(totalMastery / tasks.length) : 0;
             const elStatProgress = document.getElementById('stat-progress');
-            if (elStatProgress) elStatProgress.innerText = progress + '%';
+            if (elStatProgress) elStatProgress.innerText = avgMastery + '%';
 
             // Dashboard Exams
             const elDashboardExams = document.getElementById('dashboard-exams');
             if (elDashboardExams) {
                 elDashboardExams.innerHTML = courses.map(c => {
                     const days = Math.ceil((new Date(c.examDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    const courseTasks = tasks.filter(t => t.courseId === c.id);
+                    const courseMasterySum = courseTasks.reduce((acc, t) => acc + (t.mastery || 0), 0);
+                    const courseAvg = courseTasks.length > 0 ? Math.round(courseMasterySum / courseTasks.length) : 0;
+
                     return `<div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center justify-between">
                         <div>
-                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${c.code}</span>
-                            <h4 class="font-bold text-lg mt-2">${c.name}</h4>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${c.code}</span>
+                                <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">${courseAvg}% Mastery</span>
+                            </div>
+                            <h4 class="font-bold text-lg">${c.name}</h4>
                             <p class="text-xs text-slate-400 mt-1">${new Date(c.examDate).toLocaleDateString()}</p>
                         </div>
                         <div class="text-right">
@@ -474,21 +547,45 @@
                 }).join('');
             }
 
-            // Tasks List
+            // Tasks List with Interactive Mastery Percentage Slider
             const elTasksList = document.getElementById('tasks-list');
             if (elTasksList) {
                 elTasksList.innerHTML = tasks.map(t => {
                     const c = courses.find(x => x.id === t.courseId);
+                    const mastery = t.mastery !== undefined ? t.mastery : (t.completed ? 100 : 0);
+                    
+                    let badgeColor = 'text-red-400 bg-red-500/10 border-red-500/20';
+                    if (mastery >= 100) badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+                    else if (mastery >= 70) badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+                    else if (mastery >= 40) badgeColor = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+
                     return `
-                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between ${t.completed ? 'opacity-60' : ''}">
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="w-5 h-5 accent-blue-600 rounded">
-                                <div>
-                                    <p class="font-medium text-sm ${t.completed ? 'line-through text-slate-500' : 'text-white'}">${t.title}</p>
-                                    ${c ? `<span class="text-xs text-blue-400 font-semibold">${c.code}</span>` : ''}
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    ${c ? `<span class="text-xs text-blue-400 font-semibold bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">${c.code}</span>` : ''}
+                                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full border ${badgeColor}">
+                                        ${mastery === 100 ? '🎉 100% Mastered!' : `${mastery}% Understood`}
+                                    </span>
                                 </div>
+                                <p class="font-semibold text-base text-white mt-1">${t.title}</p>
                             </div>
-                            <button onclick="deleteTask('${t.id}')" class="text-slate-500 hover:text-red-400">🗑️</button>
+
+                            <!-- Sliding Bar for Topic Understanding -->
+                            <div class="flex items-center gap-4 bg-slate-950 p-3 rounded-xl border border-slate-800/80 min-w-[280px]">
+                                <span class="text-xs text-slate-400 font-medium">Confidence:</span>
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="100" 
+                                    step="5" 
+                                    value="${mastery}" 
+                                    oninput="updateTaskMastery('${t.id}', this.value)"
+                                    class="w-full accent-blue-600 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                                />
+                                <span class="text-xs font-mono font-bold w-10 text-right ${mastery === 100 ? 'text-emerald-400' : 'text-slate-200'}">${mastery}%</span>
+                                <button onclick="deleteTask('${t.id}')" class="text-slate-500 hover:text-red-400 pl-2">🗑️</button>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -653,9 +750,11 @@
             timerMode = mode;
             timerActive = false;
             clearInterval(timerInterval);
-            if (mode === 'pomodoro') timerSeconds = 25 * 60;
-            else if (mode === 'break') timerSeconds = 5 * 60;
+
+            if (mode === 'pomodoro') timerSeconds = timerSettings.pomoMins * 60;
+            else if (mode === 'break') timerSeconds = timerSettings.breakMins * 60;
             else timerSeconds = 0;
+
             updateTimerDisplay();
             document.getElementById('mode-pomo').className = mode === 'pomodoro' ? 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white' : 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400';
             document.getElementById('mode-break').className = mode === 'break' ? 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white' : 'flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400';
@@ -687,8 +786,9 @@
                         if (timerSeconds <= 1) {
                             timerActive = false;
                             clearInterval(timerInterval);
-                            alert('Session completed! Logged 25 mins.');
-                            logs.unshift({ id: Date.now(), courseId: document.getElementById('timer-course-select').value, duration: 25 });
+                            const loggedMins = timerMode === 'pomodoro' ? timerSettings.pomoMins : timerSettings.breakMins;
+                            alert(`Session completed! Logged ${loggedMins} mins.`);
+                            logs.unshift({ id: Date.now(), courseId: document.getElementById('timer-course-select').value, duration: loggedMins });
                             saveData();
                             return;
                         }
@@ -704,8 +804,8 @@
         window.resetTimer = function resetTimer() {
             timerActive = false;
             clearInterval(timerInterval);
-            if (timerMode === 'pomodoro') timerSeconds = 25 * 60;
-            else if (timerMode === 'break') timerSeconds = 5 * 60;
+            if (timerMode === 'pomodoro') timerSeconds = timerSettings.pomoMins * 60;
+            else if (timerMode === 'break') timerSeconds = timerSettings.breakMins * 60;
             else timerSeconds = 0;
             updateTimerDisplay();
             const btn = document.getElementById('timer-toggle-btn');
@@ -742,13 +842,8 @@
             const title = document.getElementById('new-task-title').value;
             const courseId = document.getElementById('new-task-course').value;
             if (!title) return;
-            tasks.push({ id: Date.now().toString(), courseId, title, completed: false });
+            tasks.push({ id: Date.now().toString(), courseId, title, completed: false, mastery: 0 });
             document.getElementById('new-task-title').value = '';
-            saveData();
-        };
-
-        window.toggleTask = function toggleTask(id) {
-            tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
             saveData();
         };
 
