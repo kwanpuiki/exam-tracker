@@ -3,25 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam Studying Tracker</title>
+    <title>Exam Studying Tracker - Cloud Sync</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PDF.js for rendering PDFs directly in browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Firebase SDK v9 Compat Scripts for fast single-file integration -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col md:flex-row">
+
     <!-- Sidebar -->
     <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between shrink-0">
         <div>
-            <div class="flex items-center gap-3 mb-8">
-                <div class="p-2 bg-blue-600 rounded-xl text-white font-bold">📖</div>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 bg-blue-600 rounded-xl text-white font-bold text-lg shadow-lg shadow-blue-600/30">📖</div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight">ExamTracker</h1>
-                    <p class="text-xs text-slate-400">Study & PDF Suite</p>
+                    <p class="text-xs text-slate-400">Cloud Sync & Study Suite</p>
                 </div>
+            </div>
+
+            <!-- User Auth Profile Widget -->
+            <div id="auth-widget" class="mb-6 p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <div id="user-avatar" class="w-8 h-8 rounded-full bg-blue-600/30 text-blue-400 font-bold flex items-center justify-center text-xs shrink-0">👤</div>
+                    <div class="truncate">
+                        <p id="user-name" class="text-xs font-semibold text-white truncate">Guest User</p>
+                        <p id="sync-status" class="text-[10px] text-amber-400 font-medium">⚡ Local Mode</p>
+                    </div>
+                </div>
+                <button onclick="openAuthModal()" id="auth-btn" class="text-xs text-blue-400 hover:text-blue-300 font-medium shrink-0 ml-2">Login</button>
             </div>
 
             <nav class="space-y-2">
@@ -33,7 +51,7 @@
             </nav>
         </div>
 
-        <div class="pt-6 border-t border-slate-800">
+        <div class="pt-6 border-t border-slate-800 mt-6">
             <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs text-slate-400">Total Study Time</span>
@@ -51,7 +69,7 @@
             <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-3xl font-extrabold tracking-tight">Study Dashboard</h2>
-                    <p class="text-slate-400 text-sm mt-1">Track your upcoming exams, topic confidence levels, and daily goals.</p>
+                    <p class="text-slate-400 text-sm mt-1">Real-time sync enabled. Track exams, topic confidence, and study goals.</p>
                 </div>
                 <button onclick="switchTab('timer')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">▶ Start Focus Session</button>
             </header>
@@ -85,14 +103,12 @@
             </header>
 
             <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center shadow-xl space-y-6">
-                <!-- Mode Selector -->
                 <div class="flex justify-center gap-2 bg-slate-950 p-1.5 rounded-2xl max-w-md mx-auto border border-slate-800">
                     <button onclick="setTimerMode('pomodoro')" id="mode-pomo" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold bg-blue-600 text-white">Pomodoro</button>
                     <button onclick="setTimerMode('break')" id="mode-break" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Break</button>
                     <button onclick="setTimerMode('stopwatch')" id="mode-stop" class="flex-1 py-2 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Stopwatch</button>
                 </div>
 
-                <!-- Timer Customization Settings -->
                 <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 max-w-md mx-auto flex items-center justify-around text-xs">
                     <div>
                         <label class="block text-slate-400 font-medium mb-1">Pomo (mins)</label>
@@ -172,7 +188,7 @@
         <div id="tab-journal" class="space-y-8 max-w-5xl mx-auto hidden">
             <header>
                 <h2 class="text-3xl font-extrabold tracking-tight">Daily Study Reflections & Notes</h2>
-                <p class="text-slate-400 text-sm mt-1">Reflect on your daily focus, note down tricky questions, and track your mindset.</p>
+                <p class="text-slate-400 text-sm mt-1">Reflect on daily focus, note down tricky questions, and track your mindset.</p>
             </header>
 
             <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
@@ -200,12 +216,12 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">What questions or concepts challenged you today?</label>
-                    <textarea id="note-challenges" rows="2" placeholder="e.g., Struggled with Dijkstra algorithm edge cases, or couldn't derive the reaction mechanism for Q3..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+                    <textarea id="note-challenges" rows="2" placeholder="e.g., Struggled with Dijkstra algorithm edge cases..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Key Takeaways & Thoughts</label>
-                    <textarea id="note-summary" rows="2" placeholder="e.g., Need to re-read Chapter 4 tomorrow. Practiced 10 past paper questions..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+                    <textarea id="note-summary" rows="3" placeholder="e.g., Need to re-read Chapter 4 tomorrow. Practiced 10 past paper questions..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
                 </div>
 
                 <div class="flex justify-end">
@@ -221,6 +237,41 @@
             </div>
         </div>
     </main>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl max-w-md w-full space-y-6 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">✕</button>
+            
+            <div class="text-center space-y-2">
+                <h3 class="text-2xl font-black text-white">Cross-Device Cloud Sync</h3>
+                <p class="text-xs text-slate-400">Sign in to automatically sync your courses, notes, and study logs across all your devices.</p>
+            </div>
+
+            <button onclick="signInWithGoogle()" class="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.8s.7 5.1 1.9 7.5l3.7-2.9c-.6-.7-1-1.6-1-2.6z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/></svg>
+                Continue with Google
+            </button>
+
+            <div class="flex items-center gap-3 text-xs text-slate-500 uppercase font-semibold">
+                <div class="flex-1 border-b border-slate-800"></div>
+                <span>Or Email Sign In</span>
+                <div class="flex-1 border-b border-slate-800"></div>
+            </div>
+
+            <form onsubmit="handleEmailAuth(event)" class="space-y-4">
+                <input type="email" id="auth-email" placeholder="Email Address" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
+                <input type="password" id="auth-password" placeholder="Password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
+                <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-600/20">
+                    Sign In / Register
+                </button>
+            </form>
+
+            <button onclick="signOutUser()" id="auth-logout-btn" class="w-full text-xs text-red-400 hover:underline hidden">
+                Sign Out Current Account
+            </button>
+        </div>
+    </div>
 
     <!-- PDF READER MODAL -->
     <div id="pdf-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex flex-col hidden">
@@ -247,16 +298,40 @@
     </div>
 
     <script>
-        // IndexedDB Configuration for Persistent PDF File Storage
-        let db;
+        // FIREBASE INITIALIZATION & CLOUD SYNC CONFIGURATION
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config)
+            : {
+                // Default fallback demo keys (Users will replace or automatically connect via global config)
+                apiKey: "AIzaSyDemoConfigKeyForExamTrackerSyncOnly",
+                authDomain: "exam-tracker-demo.firebaseapp.com",
+                projectId: "exam-tracker-demo",
+                storageBucket: "exam-tracker-demo.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:examtrackerdemokey"
+            };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'exam-tracker-app';
+
+        let currentUser = null;
+        let unsubscribeRealtime = null;
+
+        // IndexedDB Configuration for Persistent PDF Storage
+        let pdfDb;
         const dbReq = indexedDB.open("ExamTrackerPDFsDB", 1);
         dbReq.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains("pdfFiles")) {
-                db.createObjectStore("pdfFiles", { keyPath: "id" });
+            pdfDb = e.target.result;
+            if (!pdfDb.objectStoreNames.contains("pdfFiles")) {
+                pdfDb.createObjectStore("pdfFiles", { keyPath: "id" });
             }
         };
-        dbReq.onsuccess = (e) => { db = e.target.result; renderAll(); };
+        dbReq.onsuccess = (e) => { pdfDb = e.target.result; renderAll(); };
 
         // State Management
         let courses = JSON.parse(localStorage.getItem('exam_courses')) || [
@@ -270,13 +345,7 @@
         ];
         let logs = JSON.parse(localStorage.getItem('exam_logs')) || [];
         let journalEntries = JSON.parse(localStorage.getItem('exam_journal')) || [];
-
-        // Custom Timer Durations State
-        let timerSettings = JSON.parse(localStorage.getItem('exam_timer_settings')) || {
-            pomoMins: 25,
-            breakMins: 5,
-            stopMins: 60
-        };
+        let timerSettings = JSON.parse(localStorage.getItem('exam_timer_settings')) || { pomoMins: 25, breakMins: 5, stopMins: 60 };
 
         let currentTab = 'dashboard';
         let timerMode = 'pomodoro';
@@ -292,17 +361,117 @@
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Global function bindings
+        // AUTH & REALTIME CLOUD SYNC LISTENERS
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            const userNameEl = document.getElementById('user-name');
+            const syncStatusEl = document.getElementById('sync-status');
+            const authBtn = document.getElementById('auth-btn');
+            const userAvatar = document.getElementById('user-avatar');
+            const logoutBtn = document.getElementById('auth-logout-btn');
+
+            if (user) {
+                userNameEl.innerText = user.displayName || user.email.split('@')[0];
+                syncStatusEl.innerText = "☁️ Synced to Cloud";
+                syncStatusEl.className = "text-[10px] text-emerald-400 font-medium";
+                authBtn.innerText = "Account";
+                userAvatar.innerText = (user.displayName || user.email)[0].toUpperCase();
+                logoutBtn.classList.remove('hidden');
+
+                // Attach Cloud Firestore Realtime Sync Listener (Using strict path rule)
+                const docRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('userData').doc('mainState');
+                
+                unsubscribeRealtime = docRef.onSnapshot((docSnap) => {
+                    if (docSnap.exists) {
+                        const cloudData = docSnap.data();
+                        if (cloudData.courses) courses = cloudData.courses;
+                        if (cloudData.folders) folders = cloudData.folders;
+                        if (cloudData.tasks) tasks = cloudData.tasks;
+                        if (cloudData.logs) logs = cloudData.logs;
+                        if (cloudData.journalEntries) journalEntries = cloudData.journalEntries;
+                        if (cloudData.timerSettings) timerSettings = cloudData.timerSettings;
+                        saveLocalOnly();
+                        renderAll();
+                    } else {
+                        // Push initial state to cloud
+                        saveData();
+                    }
+                }, (error) => {
+                    console.log("Firestore sync note: fallback to local state if offline.");
+                });
+            } else {
+                userNameEl.innerText = "Guest User";
+                syncStatusEl.innerText = "⚡ Local Mode";
+                syncStatusEl.className = "text-[10px] text-amber-400 font-medium";
+                authBtn.innerText = "Login";
+                userAvatar.innerText = "👤";
+                logoutBtn.classList.add('hidden');
+                if (unsubscribeRealtime) unsubscribeRealtime();
+            }
+        });
+
+        // Save functions
         window.saveData = function saveData() {
+            saveLocalOnly();
+            saveToCloud();
+            renderAll();
+        };
+
+        function saveLocalOnly() {
             localStorage.setItem('exam_courses', JSON.stringify(courses));
             localStorage.setItem('exam_folders', JSON.stringify(folders));
             localStorage.setItem('exam_tasks', JSON.stringify(tasks));
             localStorage.setItem('exam_logs', JSON.stringify(logs));
             localStorage.setItem('exam_journal', JSON.stringify(journalEntries));
             localStorage.setItem('exam_timer_settings', JSON.stringify(timerSettings));
-            renderAll();
+        }
+
+        function saveToCloud() {
+            if (!currentUser) return;
+            const docRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('userData').doc('mainState');
+            docRef.set({
+                courses,
+                folders,
+                tasks,
+                logs,
+                journalEntries,
+                timerSettings,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(err => console.error("Cloud Save Error:", err));
+        }
+
+        // Auth Controls
+        window.openAuthModal = () => document.getElementById('auth-modal').classList.remove('hidden');
+        window.closeAuthModal = () => document.getElementById('auth-modal').classList.add('hidden');
+
+        window.signInWithGoogle = () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then(() => closeAuthModal()).catch(err => alert(err.message));
         };
 
+        window.handleEmailAuth = (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => closeAuthModal())
+                .catch(err => {
+                    if (err.code === 'auth/user-not-found') {
+                        auth.createUserWithEmailAndPassword(email, password)
+                            .then(() => closeAuthModal())
+                            .catch(err2 => alert(err2.message));
+                    } else {
+                        alert(err.message);
+                    }
+                });
+        };
+
+        window.signOutUser = () => {
+            auth.signOut().then(() => closeAuthModal());
+        };
+
+        // Navigation & Views
         window.switchTab = function switchTab(tab) {
             currentTab = tab;
             ['dashboard', 'timer', 'courses', 'checklist', 'journal'].forEach(t => {
@@ -333,53 +502,38 @@
             }
         };
 
-        // Mastery Slider Handler
         window.updateTaskMastery = function updateTaskMastery(taskId, value) {
             const numVal = parseInt(value) || 0;
-            tasks = tasks.map(t => {
-                if (t.id === taskId) {
-                    return { ...t, mastery: numVal, completed: numVal === 100 };
-                }
-                return t;
-            });
+            tasks = tasks.map(t => t.id === taskId ? { ...t, mastery: numVal, completed: numVal === 100 } : t);
             saveData();
         };
 
         window.createFolder = function createFolder(courseId) {
-            const folderName = prompt('Enter new folder/category name (e.g. Lecture Slides, Past Papers, Lab Notes):');
+            const folderName = prompt('Enter folder name (e.g. Lecture Slides, Past Papers):');
             if (!folderName || !folderName.trim()) return;
-            
-            const newFolder = {
-                id: 'folder_' + Date.now(),
-                courseId: courseId,
-                name: folderName.trim()
-            };
-            folders.push(newFolder);
+            folders.push({ id: 'folder_' + Date.now(), courseId: courseId, name: folderName.trim() });
             saveData();
         };
 
         window.deleteFolder = function deleteFolder(folderId) {
             if (confirm('Delete this folder? PDFs inside will also be removed.')) {
                 folders = folders.filter(f => f.id !== folderId);
-                const tx = db.transaction("pdfFiles", "readwrite");
-                const store = tx.objectStore("pdfFiles");
-                const req = store.openCursor();
-                req.onsuccess = (e) => {
-                    const cursor = e.target.result;
-                    if (cursor) {
-                        if (cursor.value.folderId === folderId) {
-                            cursor.delete();
-                        }
-                        cursor.continue();
-                    } else {
-                        saveData();
-                    }
-                };
+                if (pdfDb) {
+                    const tx = pdfDb.transaction("pdfFiles", "readwrite");
+                    const store = tx.objectStore("pdfFiles");
+                    const req = store.openCursor();
+                    req.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            if (cursor.value.folderId === folderId) cursor.delete();
+                            cursor.continue();
+                        } else saveData();
+                    };
+                } else saveData();
             }
         };
 
         window.renderAll = async function renderAll() {
-            // Populate Timer Settings inputs if on screen
             const elPomoInput = document.getElementById('setting-pomo');
             if (elPomoInput) elPomoInput.value = timerSettings.pomoMins;
             const elBreakInput = document.getElementById('setting-break');
@@ -387,26 +541,18 @@
             const elStopInput = document.getElementById('setting-stop');
             if (elStopInput) elStopInput.value = timerSettings.stopMins;
 
-            // Stats & calculations safely guarded
             const totalMins = logs.reduce((acc, curr) => acc + (curr.duration || 0), 0);
             const totalHrs = (totalMins / 60).toFixed(1);
 
-            const elTotalHours = document.getElementById('total-hours');
-            if (elTotalHours) elTotalHours.innerText = totalHrs;
+            if (document.getElementById('total-hours')) document.getElementById('total-hours').innerText = totalHrs;
+            if (document.getElementById('stat-hours')) document.getElementById('stat-hours').innerText = totalHrs + ' hrs';
+            if (document.getElementById('stat-courses')) document.getElementById('stat-courses').innerText = courses.length;
 
-            const elStatHours = document.getElementById('stat-hours');
-            if (elStatHours) elStatHours.innerText = totalHrs + ' hrs';
-
-            const elStatCourses = document.getElementById('stat-courses');
-            if (elStatCourses) elStatCourses.innerText = courses.length;
-
-            // Calculate overall understanding percentage across all topics
             const totalMastery = tasks.reduce((acc, curr) => acc + (curr.mastery || 0), 0);
             const avgMastery = tasks.length > 0 ? Math.round(totalMastery / tasks.length) : 0;
-            const elStatProgress = document.getElementById('stat-progress');
-            if (elStatProgress) elStatProgress.innerText = avgMastery + '%';
+            if (document.getElementById('stat-progress')) document.getElementById('stat-progress').innerText = avgMastery + '%';
 
-            // Dashboard Exams
+            // Dashboard Upcoming Exams
             const elDashboardExams = document.getElementById('dashboard-exams');
             if (elDashboardExams) {
                 elDashboardExams.innerHTML = courses.map(c => {
@@ -432,23 +578,15 @@
                 }).join('');
             }
 
-            // Course Selectors
+            // Select Options
             const courseOptions = courses.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
-            const elTimerSelect = document.getElementById('timer-course-select');
-            if (elTimerSelect) elTimerSelect.innerHTML = courseOptions;
+            if (document.getElementById('timer-course-select')) document.getElementById('timer-course-select').innerHTML = courseOptions;
+            if (document.getElementById('new-task-course')) document.getElementById('new-task-course').innerHTML = courseOptions;
+            if (document.getElementById('note-course')) document.getElementById('note-course').innerHTML = `<option value="">General Reflection</option>` + courseOptions;
 
-            const elTaskSelect = document.getElementById('new-task-course');
-            if (elTaskSelect) elTaskSelect.innerHTML = courseOptions;
-
-            const elNoteCourse = document.getElementById('note-course');
-            if (elNoteCourse) {
-                elNoteCourse.innerHTML = `<option value="">General Reflection</option>` + courseOptions;
-            }
-
-            // Fetch stored PDFs list from IndexedDB
             const storedPdfs = await getAllPdfsFromDB();
 
-            // Courses Grid with PDF Folders & Upload
+            // Courses Grid
             const elCoursesGrid = document.getElementById('courses-grid');
             if (elCoursesGrid) {
                 elCoursesGrid.innerHTML = courses.map(c => {
@@ -466,7 +604,6 @@
                             <p class="text-sm text-slate-400 mt-1">Exam: ${new Date(c.examDate).toLocaleString()}</p>
                         </div>
 
-                        <!-- Organized PDF Folders & Materials Section -->
                         <div class="pt-4 border-t border-slate-800/80 space-y-4">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Course Folders & Materials</span>
@@ -481,7 +618,6 @@
                                 </div>
                             </div>
 
-                            <!-- Custom Folders Display -->
                             <div class="space-y-3">
                                 ${courseFolders.map(f => {
                                     const folderPdfs = storedPdfs.filter(p => p.folderId === f.id);
@@ -520,7 +656,6 @@
                                     `;
                                 }).join('')}
 
-                                <!-- General (Uncategorized) PDFs -->
                                 ${unassignedPdfs.length > 0 ? `
                                     <div class="space-y-1.5 pt-1">
                                         <span class="text-[10px] font-semibold text-slate-500 uppercase">General Materials</span>
@@ -547,7 +682,7 @@
                 }).join('');
             }
 
-            // Tasks List with Interactive Mastery Percentage Slider
+            // Checklist Topics & Mastery Sliders
             const elTasksList = document.getElementById('tasks-list');
             if (elTasksList) {
                 elTasksList.innerHTML = tasks.map(t => {
@@ -571,7 +706,6 @@
                                 <p class="font-semibold text-base text-white mt-1">${t.title}</p>
                             </div>
 
-                            <!-- Sliding Bar for Topic Understanding -->
                             <div class="flex items-center gap-4 bg-slate-950 p-3 rounded-xl border border-slate-800/80 min-w-[280px]">
                                 <span class="text-xs text-slate-400 font-medium">Confidence:</span>
                                 <input 
@@ -591,7 +725,7 @@
                 }).join('');
             }
 
-            // Journal Entries List
+            // Journal List (Line Breaks & Untruncated)
             const elJournalList = document.getElementById('journal-entries-list');
             if (elJournalList) {
                 elJournalList.innerHTML = journalEntries.length > 0 ? journalEntries.map(e => {
@@ -599,17 +733,22 @@
                     return `
                         <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">${e.attitude}</span>
                                     ${c ? `<span class="text-xs text-slate-400 font-medium">📚 ${c.code}</span>` : ''}
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <span class="text-xs text-slate-500">${e.date}</span>
-                                    <button onclick="deleteJournalEntry('${e.id}')" class="text-slate-500 hover:text-red-400">🗑️</button>
+                                    <button onclick="deleteJournalEntry('${e.id}')" class="text-slate-500 hover:text-red-400 transition">🗑️</button>
                                 </div>
                             </div>
-                            ${e.challenges ? `<div class="bg-slate-950 p-3 rounded-xl text-xs text-amber-200/90 border border-amber-500/10"><strong class="text-amber-400">Tricky Questions/Concepts:</strong> ${e.challenges}</div>` : ''}
-                            ${e.summary ? `<div class="text-sm text-slate-300 leading-relaxed">${e.summary}</div>` : ''}
+                            ${e.challenges ? `<div class="bg-slate-950 p-3 rounded-xl text-xs text-amber-200/90 border border-amber-500/10 whitespace-pre-wrap leading-relaxed"><strong class="text-amber-400 block mb-1">Tricky Questions / Concepts:</strong>${e.challenges}</div>` : ''}
+                            ${e.summary ? `
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap break-words max-h-none overflow-visible">
+                                    <strong class="text-blue-400 text-xs uppercase tracking-wider block mb-1.5 font-bold">Key Takeaways & Reflections:</strong>
+                                    ${e.summary}
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 }).join('') : `<p class="text-sm text-slate-500 italic py-4">No reflections logged yet.</p>`;
@@ -622,9 +761,7 @@
             const challenges = document.getElementById('note-challenges').value;
             const summary = document.getElementById('note-summary').value;
 
-            if (!challenges && !summary) {
-                return alert('Please enter at least a note or tricky question reflection.');
-            }
+            if (!challenges && !summary) return alert('Please enter at least a note or tricky question reflection.');
 
             const entry = {
                 id: 'note_' + Date.now(),
@@ -646,7 +783,7 @@
             saveData();
         };
 
-        // PDF IndexedDB Handlers
+        // PDF Storage & Viewer Handlers
         window.uploadPdf = function uploadPdf(event, courseId, folderId = null) {
             const file = event.target.files[0];
             if (!file || file.type !== 'application/pdf') return alert('Please select a valid PDF file.');
@@ -656,14 +793,14 @@
                 const arrayBuffer = e.target.result;
                 const pdfRecord = {
                     id: 'pdf_' + Date.now(),
-                    courseId: courseId,
-                    folderId: folderId,
+                    courseId,
+                    folderId,
                     fileName: file.name,
                     uploadDate: new Date().toISOString(),
                     data: arrayBuffer
                 };
 
-                const tx = db.transaction("pdfFiles", "readwrite");
+                const tx = pdfDb.transaction("pdfFiles", "readwrite");
                 const store = tx.objectStore("pdfFiles");
                 store.put(pdfRecord);
                 tx.oncomplete = () => renderAll();
@@ -673,8 +810,8 @@
 
         window.getAllPdfsFromDB = function getAllPdfsFromDB() {
             return new Promise((resolve) => {
-                if (!db) return resolve([]);
-                const tx = db.transaction("pdfFiles", "readonly");
+                if (!pdfDb) return resolve([]);
+                const tx = pdfDb.transaction("pdfFiles", "readonly");
                 const store = tx.objectStore("pdfFiles");
                 const req = store.getAll();
                 req.onsuccess = () => resolve(req.result || []);
@@ -683,14 +820,13 @@
         };
 
         window.deletePdf = function deletePdf(pdfId) {
-            const tx = db.transaction("pdfFiles", "readwrite");
+            const tx = pdfDb.transaction("pdfFiles", "readwrite");
             tx.objectStore("pdfFiles").delete(pdfId);
             tx.oncomplete = () => renderAll();
         };
 
-        // PDF Render & Viewer Modal Logic
         window.openPdfModal = async function openPdfModal(pdfId, fileName) {
-            const tx = db.transaction("pdfFiles", "readonly");
+            const tx = pdfDb.transaction("pdfFiles", "readonly");
             const req = tx.objectStore("pdfFiles").get(pdfId);
             req.onsuccess = async () => {
                 const record = req.result;
@@ -731,7 +867,6 @@
                     }
                 });
             });
-
             document.getElementById('page-num-display').innerText = `${num} / ${currentPdfDoc.numPages}`;
         };
 
@@ -745,7 +880,7 @@
             }
         };
 
-        // Timer Functions
+        // Timer Logic
         window.setTimerMode = function setTimerMode(mode) {
             timerMode = mode;
             timerActive = false;
@@ -765,9 +900,7 @@
             const mins = Math.floor(timerSeconds / 60);
             const secs = timerSeconds % 60;
             const display = document.getElementById('timer-display');
-            if (display) {
-                display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }
+            if (display) display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         };
 
         window.toggleTimer = function toggleTimer() {
@@ -787,6 +920,7 @@
                             timerActive = false;
                             clearInterval(timerInterval);
                             const loggedMins = timerMode === 'pomodoro' ? timerSettings.pomoMins : timerSettings.breakMins;
+                            playChime();
                             alert(`Session completed! Logged ${loggedMins} mins.`);
                             logs.unshift({ id: Date.now(), courseId: document.getElementById('timer-course-select').value, duration: loggedMins });
                             saveData();
@@ -800,6 +934,22 @@
                 clearInterval(timerInterval);
             }
         };
+
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 1.5);
+            } catch(e) {}
+        }
 
         window.resetTimer = function resetTimer() {
             timerActive = false;
@@ -815,7 +965,7 @@
             }
         };
 
-        // Actions
+        // Course & Task CRUD
         window.toggleAddCourseModal = function toggleAddCourseModal() {
             const f = document.getElementById('add-course-form');
             if (f) f.classList.toggle('hidden');
@@ -852,7 +1002,7 @@
             saveData();
         };
 
-        // Initialize render
+        // Initialize Render
         renderAll();
     </script>
 </body>
