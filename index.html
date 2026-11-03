@@ -154,12 +154,13 @@
                     <h2 class="text-3xl font-extrabold tracking-tight">Task Reminders & Deadlines</h2>
                     <p class="text-slate-400 text-sm mt-1">Set due dates, organize into folders, and check off completed tasks.</p>
                 </div>
-                <button onclick="toggleAddReminderModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">+ Add Reminder</button>
+                <button onclick="openAddReminderModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">+ Add Reminder</button>
             </header>
 
-            <!-- Add Reminder Card -->
+            <!-- Add / Edit Reminder Form Modal -->
             <div id="add-reminder-form" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                <h3 class="text-lg font-bold text-white">Create New Task Reminder</h3>
+                <h3 id="rem-modal-title" class="text-lg font-bold text-white">Create New Task Reminder</h3>
+                <input type="hidden" id="rem-edit-id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="text" id="rem-title" placeholder="Reminder Title (e.g., Submit COMP201 Assignment 2)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
                     <input type="datetime-local" id="rem-duedate" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
@@ -182,7 +183,7 @@
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
                     <button onclick="toggleAddReminderModal()" class="px-4 py-2 text-sm bg-slate-800 rounded-xl hover:bg-slate-700">Cancel</button>
-                    <button onclick="addReminder()" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl">Save Reminder</button>
+                    <button onclick="saveReminder()" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl">Save Reminder</button>
                 </div>
             </div>
 
@@ -215,11 +216,12 @@
                     <h2 class="text-3xl font-extrabold tracking-tight">Courses & PDF Materials</h2>
                     <p class="text-slate-400 text-sm mt-1">Manage subjects, exam dates, and upload study notes/slides.</p>
                 </div>
-                <button onclick="toggleAddCourseModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium">+ Add Course</button>
+                <button onclick="openAddCourseModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium">+ Add Course</button>
             </header>
 
             <div id="add-course-form" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                <h3 class="text-lg font-bold">Add New Course</h3>
+                <h3 id="course-modal-title" class="text-lg font-bold">Add New Course</h3>
+                <input type="hidden" id="course-edit-id">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <input type="text" id="new-c-name" placeholder="Course Name (e.g. Data Structures)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
                     <input type="text" id="new-c-code" placeholder="Course Code (e.g. COMP201)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
@@ -227,7 +229,7 @@
                 </div>
                 <div class="flex justify-end gap-3">
                     <button onclick="toggleAddCourseModal()" class="px-4 py-2 text-sm bg-slate-800 rounded-xl">Cancel</button>
-                    <button onclick="addCourse()" class="px-4 py-2 text-sm bg-blue-600 rounded-xl">Save Course</button>
+                    <button onclick="saveCourse()" class="px-4 py-2 text-sm bg-blue-600 rounded-xl">Save Course</button>
                 </div>
             </div>
 
@@ -558,13 +560,87 @@
             renderAll();
         };
 
-        // Reminder CRUD & Helpers
+        // Course CRUD Functions
+        window.openAddCourseModal = function openAddCourseModal() {
+            document.getElementById('course-edit-id').value = '';
+            document.getElementById('course-modal-title').innerText = 'Add New Course';
+            document.getElementById('new-c-name').value = '';
+            document.getElementById('new-c-code').value = '';
+            document.getElementById('new-c-date').value = '';
+            document.getElementById('add-course-form').classList.remove('hidden');
+        };
+
+        window.openEditCourseModal = function openEditCourseModal(id) {
+            const course = courses.find(c => c.id === id);
+            if (!course) return;
+            document.getElementById('course-edit-id').value = course.id;
+            document.getElementById('course-modal-title').innerText = 'Edit Course Details';
+            document.getElementById('new-c-name').value = course.name;
+            document.getElementById('new-c-code').value = course.code;
+            document.getElementById('new-c-date').value = course.examDate;
+            document.getElementById('add-course-form').classList.remove('hidden');
+        };
+
+        window.toggleAddCourseModal = function toggleAddCourseModal() {
+            const f = document.getElementById('add-course-form');
+            if (f) f.classList.toggle('hidden');
+        };
+
+        window.saveCourse = function saveCourse() {
+            const id = document.getElementById('course-edit-id').value;
+            const name = document.getElementById('new-c-name').value.trim();
+            const code = document.getElementById('new-c-code').value.trim() || 'EXAM';
+            const date = document.getElementById('new-c-date').value || new Date().toISOString();
+            
+            if (!name) return alert('Please enter a course name.');
+
+            if (id) {
+                courses = courses.map(c => c.id === id ? { ...c, name, code, examDate: date } : c);
+            } else {
+                courses.push({ id: Date.now().toString(), name, code, examDate: date });
+            }
+
+            toggleAddCourseModal();
+            saveData();
+        };
+
+        window.deleteCourse = function deleteCourse(id) {
+            if (confirm('Delete this course? Linked folders and tasks will remain.')) {
+                courses = courses.filter(c => c.id !== id);
+                saveData();
+            }
+        };
+
+        // Reminder CRUD Functions
+        window.openAddReminderModal = function openAddReminderModal() {
+            document.getElementById('rem-edit-id').value = '';
+            document.getElementById('rem-modal-title').innerText = 'Create New Task Reminder';
+            document.getElementById('rem-title').value = '';
+            document.getElementById('rem-duedate').value = '';
+            document.getElementById('rem-course').value = '';
+            document.getElementById('rem-category').value = 'Assignments 📝';
+            document.getElementById('add-reminder-form').classList.remove('hidden');
+        };
+
+        window.openEditReminderModal = function openEditReminderModal(id) {
+            const rem = reminders.find(r => r.id === id);
+            if (!rem) return;
+            document.getElementById('rem-edit-id').value = rem.id;
+            document.getElementById('rem-modal-title').innerText = 'Edit Task Reminder';
+            document.getElementById('rem-title').value = rem.title;
+            document.getElementById('rem-duedate').value = rem.dueDate || '';
+            document.getElementById('rem-course').value = rem.courseId || '';
+            document.getElementById('rem-category').value = rem.category || 'General Tasks 📌';
+            document.getElementById('add-reminder-form').classList.remove('hidden');
+        };
+
         window.toggleAddReminderModal = function toggleAddReminderModal() {
             const f = document.getElementById('add-reminder-form');
             if (f) f.classList.toggle('hidden');
         };
 
-        window.addReminder = function addReminder() {
+        window.saveReminder = function saveReminder() {
+            const id = document.getElementById('rem-edit-id').value;
             const title = document.getElementById('rem-title').value.trim();
             const dueDate = document.getElementById('rem-duedate').value;
             const courseId = document.getElementById('rem-course').value;
@@ -572,17 +648,19 @@
 
             if (!title) return alert('Please enter a reminder title.');
 
-            reminders.push({
-                id: 'rem_' + Date.now(),
-                title,
-                dueDate: dueDate || null,
-                courseId: courseId || null,
-                category: category || 'General Tasks 📌',
-                completed: false
-            });
+            if (id) {
+                reminders = reminders.map(r => r.id === id ? { ...r, title, dueDate: dueDate || null, courseId: courseId || null, category: category || 'General Tasks 📌' } : r);
+            } else {
+                reminders.push({
+                    id: 'rem_' + Date.now(),
+                    title,
+                    dueDate: dueDate || null,
+                    courseId: courseId || null,
+                    category: category || 'General Tasks 📌',
+                    completed: false
+                });
+            }
 
-            document.getElementById('rem-title').value = '';
-            document.getElementById('rem-duedate').value = '';
             toggleAddReminderModal();
             saveData();
         };
@@ -610,6 +688,37 @@
             renderAll();
         };
 
+        // Topic Checklist Functions
+        window.editTaskTitle = function editTaskTitle(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            const newTitle = prompt('Edit topic title:', task.title);
+            if (newTitle && newTitle.trim()) {
+                tasks = tasks.map(t => t.id === id ? { ...t, title: newTitle.trim() } : t);
+                saveData();
+            }
+        };
+
+        window.updateTaskMastery = function updateTaskMastery(taskId, value) {
+            const numVal = parseInt(value) || 0;
+            tasks = tasks.map(t => t.id === taskId ? { ...t, mastery: numVal, completed: numVal === 100 } : t);
+            saveData();
+        };
+
+        window.addTask = function addTask() {
+            const title = document.getElementById('new-task-title').value;
+            const courseId = document.getElementById('new-task-course').value;
+            if (!title) return;
+            tasks.push({ id: Date.now().toString(), courseId, title, completed: false, mastery: 0 });
+            document.getElementById('new-task-title').value = '';
+            saveData();
+        };
+
+        window.deleteTask = function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveData();
+        };
+
         // Custom Timer Settings
         window.updateTimerSettings = function updateTimerSettings() {
             const pomoVal = parseInt(document.getElementById('setting-pomo').value) || 25;
@@ -623,12 +732,6 @@
                 else if (timerMode === 'break') timerSeconds = breakVal * 60;
                 updateTimerDisplay();
             }
-        };
-
-        window.updateTaskMastery = function updateTaskMastery(taskId, value) {
-            const numVal = parseInt(value) || 0;
-            tasks = tasks.map(t => t.id === taskId ? { ...t, mastery: numVal, completed: numVal === 100 } : t);
-            saveData();
         };
 
         window.createFolder = function createFolder(courseId) {
@@ -754,7 +857,10 @@
                                     ${due ? `<p class="text-xs text-slate-400 mt-0.5">${due.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
                                 </div>
                             </div>
-                            <button onclick="deleteReminder('${r.id}')" class="text-slate-500 hover:text-red-400 p-2 shrink-0">🗑️</button>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="openEditReminderModal('${r.id}')" class="text-slate-400 hover:text-blue-400 p-2 text-sm" title="Edit Reminder">✏️</button>
+                                <button onclick="deleteReminder('${r.id}')" class="text-slate-500 hover:text-red-400 p-2 text-sm" title="Delete Reminder">🗑️</button>
+                            </div>
                         </div>
                     `;
                 }).join('') : `<p class="text-sm text-slate-500 italic py-6 text-center">No reminders found in this filter.</p>`;
@@ -774,7 +880,10 @@
                         <div>
                             <div class="flex items-center justify-between mb-3">
                                 <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-400">${c.code}</span>
-                                <button onclick="deleteCourse('${c.id}')" class="text-slate-500 hover:text-red-400">🗑️</button>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openEditCourseModal('${c.id}')" class="text-slate-400 hover:text-blue-400 text-sm" title="Edit Course">✏️</button>
+                                    <button onclick="deleteCourse('${c.id}')" class="text-slate-500 hover:text-red-400 text-sm" title="Delete Course">🗑️</button>
+                                </div>
                             </div>
                             <h3 class="text-xl font-bold">${c.name}</h3>
                             <p class="text-sm text-slate-400 mt-1">Exam: ${new Date(c.examDate).toLocaleString()}</p>
@@ -879,7 +988,10 @@
                                         ${mastery === 100 ? '🎉 100% Mastered!' : `${mastery}% Understood`}
                                     </span>
                                 </div>
-                                <p class="font-semibold text-base text-white mt-1">${t.title}</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <p class="font-semibold text-base text-white">${t.title}</p>
+                                    <button onclick="editTaskTitle('${t.id}')" class="text-slate-500 hover:text-blue-400 text-xs" title="Edit Topic Title">✏️</button>
+                                </div>
                             </div>
 
                             <div class="flex items-center gap-4 bg-slate-950 p-3 rounded-xl border border-slate-800/80 min-w-[280px]">
@@ -901,7 +1013,7 @@
                 }).join('');
             }
 
-            // Journal List (Line Breaks & Untruncated)
+            // Journal List
             const elJournalList = document.getElementById('journal-entries-list');
             if (elJournalList) {
                 elJournalList.innerHTML = journalEntries.length > 0 ? journalEntries.map(e => {
@@ -1139,43 +1251,6 @@
                 btn.innerText = '▶ Start Focus';
                 btn.className = 'px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg';
             }
-        };
-
-        // Course & Task CRUD
-        window.toggleAddCourseModal = function toggleAddCourseModal() {
-            const f = document.getElementById('add-course-form');
-            if (f) f.classList.toggle('hidden');
-        };
-
-        window.addCourse = function addCourse() {
-            const name = document.getElementById('new-c-name').value;
-            const code = document.getElementById('new-c-code').value || 'EXAM';
-            const date = document.getElementById('new-c-date').value || new Date().toISOString();
-            if (!name) return;
-            courses.push({ id: Date.now().toString(), name, code, examDate: date });
-            document.getElementById('new-c-name').value = '';
-            document.getElementById('new-c-code').value = '';
-            toggleAddCourseModal();
-            saveData();
-        };
-
-        window.deleteCourse = function deleteCourse(id) {
-            courses = courses.filter(c => c.id !== id);
-            saveData();
-        };
-
-        window.addTask = function addTask() {
-            const title = document.getElementById('new-task-title').value;
-            const courseId = document.getElementById('new-task-course').value;
-            if (!title) return;
-            tasks.push({ id: Date.now().toString(), courseId, title, completed: false, mastery: 0 });
-            document.getElementById('new-task-title').value = '';
-            saveData();
-        };
-
-        window.deleteTask = function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            saveData();
         };
 
         // Initial Render Call
