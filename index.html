@@ -45,6 +45,7 @@
             <nav class="space-y-2">
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-blue-600 text-white shadow-lg">📊 Dashboard</button>
                 <button onclick="switchTab('timer')" id="nav-timer" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">⏱️ Study Timer</button>
+                <button onclick="switchTab('reminders')" id="nav-reminders" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">⏰ Task Reminders</button>
                 <button onclick="switchTab('courses')" id="nav-courses" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📚 Courses & PDFs</button>
                 <button onclick="switchTab('checklist')" id="nav-checklist" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">✅ Topics & Mastery %</button>
                 <button onclick="switchTab('journal')" id="nav-journal" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200">📝 Study Journal & Notes</button>
@@ -74,17 +75,21 @@
                 <button onclick="switchTab('timer')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">▶ Start Focus Session</button>
             </header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                     <span class="text-sm font-medium text-slate-400">Active Courses</span>
                     <div id="stat-courses" class="text-3xl font-bold mt-4">0</div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-                    <span class="text-sm font-medium text-slate-400">Avg. Topic Understanding</span>
+                    <span class="text-sm font-medium text-slate-400">Pending Reminders</span>
+                    <div id="stat-reminders" class="text-3xl font-bold mt-4 text-amber-400">0</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                    <span class="text-sm font-medium text-slate-400">Avg. Mastery</span>
                     <div id="stat-progress" class="text-3xl font-bold mt-4">0%</div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-                    <span class="text-sm font-medium text-slate-400">Total Logged Time</span>
+                    <span class="text-sm font-medium text-slate-400">Logged Time</span>
                     <div id="stat-hours" class="text-3xl font-bold mt-4">0.0 hrs</div>
                 </div>
             </div>
@@ -140,6 +145,67 @@
                     <button onclick="resetTimer()" class="p-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl">🔄</button>
                 </div>
             </div>
+        </div>
+
+        <!-- TASK REMINDERS TAB -->
+        <div id="tab-reminders" class="space-y-8 max-w-5xl mx-auto hidden">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Task Reminders & Deadlines</h2>
+                    <p class="text-slate-400 text-sm mt-1">Set due dates, organize into folders, and track overdue assignments.</p>
+                </div>
+                <button onclick="toggleAddReminderModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-lg shadow-blue-600/20">+ Add Reminder</button>
+            </header>
+
+            <!-- Add Reminder Card -->
+            <div id="add-reminder-form" class="hidden bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+                <h3 class="text-lg font-bold text-white">Create New Task Reminder</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="rem-title" placeholder="Reminder Title (e.g., Submit COMP201 Assignment 2)" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <input type="datetime-local" id="rem-duedate" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Course (Optional)</label>
+                        <select id="rem-course" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Folder Category</label>
+                        <select id="rem-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="Assignments 📝">Assignments 📝</option>
+                            <option value="Exam Revision 📚">Exam Revision 📚</option>
+                            <option value="Lab Reports 🧪">Lab Reports 🧪</option>
+                            <option value="Readings 📖">Readings 📖</option>
+                            <option value="General Tasks 📌">General Tasks 📌</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="toggleAddReminderModal()" class="px-4 py-2 text-sm bg-slate-800 rounded-xl hover:bg-slate-700">Cancel</button>
+                    <button onclick="addReminder()" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl">Save Reminder</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar & Quick Stats -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                <div class="flex items-center gap-2 overflow-x-auto">
+                    <button onclick="setReminderFilter('all')" id="rf-all" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white">All</button>
+                    <button onclick="setReminderFilter('pending')" id="rf-pending" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800">Pending</button>
+                    <button onclick="setReminderFilter('overdue')" id="rf-overdue" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800">Overdue ⚠️</button>
+                    <button onclick="setReminderFilter('completed')" id="rf-completed" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800">Completed ✅</button>
+                </div>
+                <select id="rem-filter-category" onchange="renderAll()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none">
+                    <option value="all">All Folders</option>
+                    <option value="Assignments 📝">Assignments 📝</option>
+                    <option value="Exam Revision 📚">Exam Revision 📚</option>
+                    <option value="Lab Reports 🧪">Lab Reports 🧪</option>
+                    <option value="Readings 📖">Readings 📖</option>
+                    <option value="General Tasks 📌">General Tasks 📌</option>
+                </select>
+            </div>
+
+            <!-- Reminders List -->
+            <div id="reminders-list" class="space-y-4"></div>
         </div>
 
         <!-- COURSES TAB -->
@@ -341,11 +407,16 @@
             { id: 't1', courseId: '1', title: 'Review AVL Trees & Red-Black Trees', completed: false, mastery: 85 },
             { id: 't2', courseId: '2', title: 'Study Virtual Memory & Page Replacement', completed: false, mastery: 40 }
         ];
+        let reminders = JSON.parse(localStorage.getItem('exam_reminders')) || [
+            { id: 'r1', title: 'Submit COMP201 Assignment 2', courseId: '1', dueDate: '2026-11-05T23:59', category: 'Assignments 📝', completed: false },
+            { id: 'r2', title: 'Prepare OS Lab Report 3', courseId: '2', dueDate: '2026-11-10T17:00', category: 'Lab Reports 🧪', completed: false }
+        ];
         let logs = JSON.parse(localStorage.getItem('exam_logs')) || [];
         let journalEntries = JSON.parse(localStorage.getItem('exam_journal')) || [];
         let timerSettings = JSON.parse(localStorage.getItem('exam_timer_settings')) || { pomoMins: 25, breakMins: 5, stopMins: 60 };
 
         let currentTab = 'dashboard';
+        let reminderFilter = 'all';
         let timerMode = 'pomodoro';
         let timerSeconds = timerSettings.pomoMins * 60;
         let timerActive = false;
@@ -385,6 +456,7 @@
                         if (cloudData.courses) courses = cloudData.courses;
                         if (cloudData.folders) folders = cloudData.folders;
                         if (cloudData.tasks) tasks = cloudData.tasks;
+                        if (cloudData.reminders) reminders = cloudData.reminders;
                         if (cloudData.logs) logs = cloudData.logs;
                         if (cloudData.journalEntries) journalEntries = cloudData.journalEntries;
                         if (cloudData.timerSettings) timerSettings = cloudData.timerSettings;
@@ -418,6 +490,7 @@
             localStorage.setItem('exam_courses', JSON.stringify(courses));
             localStorage.setItem('exam_folders', JSON.stringify(folders));
             localStorage.setItem('exam_tasks', JSON.stringify(tasks));
+            localStorage.setItem('exam_reminders', JSON.stringify(reminders));
             localStorage.setItem('exam_logs', JSON.stringify(logs));
             localStorage.setItem('exam_journal', JSON.stringify(journalEntries));
             localStorage.setItem('exam_timer_settings', JSON.stringify(timerSettings));
@@ -430,6 +503,7 @@
                 courses,
                 folders,
                 tasks,
+                reminders,
                 logs,
                 journalEntries,
                 timerSettings,
@@ -471,7 +545,7 @@
         // Navigation & Views
         window.switchTab = function switchTab(tab) {
             currentTab = tab;
-            ['dashboard', 'timer', 'courses', 'checklist', 'journal'].forEach(t => {
+            ['dashboard', 'timer', 'reminders', 'courses', 'checklist', 'journal'].forEach(t => {
                 const tabEl = document.getElementById(`tab-${t}`);
                 const navEl = document.getElementById(`nav-${t}`);
                 if (tabEl) tabEl.classList.toggle('hidden', t !== tab);
@@ -479,6 +553,58 @@
                     navEl.className = t === tab 
                         ? 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-blue-600 text-white shadow-lg' 
                         : 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+                }
+            });
+            renderAll();
+        };
+
+        // Reminder CRUD & Helpers
+        window.toggleAddReminderModal = function toggleAddReminderModal() {
+            const f = document.getElementById('add-reminder-form');
+            if (f) f.classList.toggle('hidden');
+        };
+
+        window.addReminder = function addReminder() {
+            const title = document.getElementById('rem-title').value.trim();
+            const dueDate = document.getElementById('rem-duedate').value;
+            const courseId = document.getElementById('rem-course').value;
+            const category = document.getElementById('rem-category').value;
+
+            if (!title) return alert('Please enter a reminder title.');
+
+            reminders.push({
+                id: 'rem_' + Date.now(),
+                title,
+                dueDate: dueDate || null,
+                courseId: courseId || null,
+                category: category || 'General Tasks 📌',
+                completed: false
+            });
+
+            document.getElementById('rem-title').value = '';
+            document.getElementById('rem-duedate').value = '';
+            toggleAddReminderModal();
+            saveData();
+        };
+
+        window.toggleReminderComplete = function toggleReminderComplete(id) {
+            reminders = reminders.map(r => r.id === id ? { ...r, completed: !r.completed } : r);
+            saveData();
+        };
+
+        window.deleteReminder = function deleteReminder(id) {
+            reminders = reminders.filter(r => r.id !== id);
+            saveData();
+        };
+
+        window.setReminderFilter = function setReminderFilter(filter) {
+            reminderFilter = filter;
+            ['all', 'pending', 'overdue', 'completed'].forEach(f => {
+                const btn = document.getElementById(`rf-${f}`);
+                if (btn) {
+                    btn.className = f === filter 
+                        ? 'px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white' 
+                        : 'px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800';
                 }
             });
             renderAll();
@@ -541,9 +667,12 @@
             const totalMins = logs.reduce((acc, curr) => acc + (curr.duration || 0), 0);
             const totalHrs = (totalMins / 60).toFixed(1);
 
+            const pendingRemCount = reminders.filter(r => !r.completed).length;
+
             if (document.getElementById('total-hours')) document.getElementById('total-hours').innerText = totalHrs;
             if (document.getElementById('stat-hours')) document.getElementById('stat-hours').innerText = totalHrs + ' hrs';
             if (document.getElementById('stat-courses')) document.getElementById('stat-courses').innerText = courses.length;
+            if (document.getElementById('stat-reminders')) document.getElementById('stat-reminders').innerText = pendingRemCount;
 
             const totalMastery = tasks.reduce((acc, curr) => acc + (curr.mastery || 0), 0);
             const avgMastery = tasks.length > 0 ? Math.round(totalMastery / tasks.length) : 0;
@@ -579,7 +708,57 @@
             const courseOptions = courses.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
             if (document.getElementById('timer-course-select')) document.getElementById('timer-course-select').innerHTML = courseOptions;
             if (document.getElementById('new-task-course')) document.getElementById('new-task-course').innerHTML = courseOptions;
+            if (document.getElementById('rem-course')) document.getElementById('rem-course').innerHTML = `<option value="">General (No Course)</option>` + courseOptions;
             if (document.getElementById('note-course')) document.getElementById('note-course').innerHTML = `<option value="">General Reflection</option>` + courseOptions;
+
+            // Render Task Reminders
+            const elRemList = document.getElementById('reminders-list');
+            if (elRemList) {
+                const selectedCat = document.getElementById('rem-filter-category') ? document.getElementById('rem-filter-category').value : 'all';
+                const now = new Date();
+
+                let filteredReminders = reminders.filter(r => {
+                    if (selectedCat !== 'all' && r.category !== selectedCat) return false;
+                    const due = r.dueDate ? new Date(r.dueDate) : null;
+                    const isOverdue = due && due < now && !r.completed;
+
+                    if (reminderFilter === 'pending') return !r.completed;
+                    if (reminderFilter === 'completed') return r.completed;
+                    if (reminderFilter === 'overdue') return isOverdue;
+                    return true;
+                });
+
+                elRemList.innerHTML = filteredReminders.length > 0 ? filteredReminders.map(r => {
+                    const c = courses.find(x => x.id === r.courseId);
+                    const due = r.dueDate ? new Date(r.dueDate) : null;
+                    const isOverdue = due && due < now && !r.completed;
+                    const isDueSoon = due && !isOverdue && !r.completed && (due - now) < (24 * 60 * 60 * 1000);
+
+                    let badge = '';
+                    if (r.completed) badge = `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✅ Completed</span>`;
+                    else if (isOverdue) badge = `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse">⚠️ Overdue</span>`;
+                    else if (isDueSoon) badge = `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">⏳ Due in <24h</span>`;
+                    else if (due) badge = `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">📅 Scheduled</span>`;
+
+                    return `
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between gap-4 transition hover:border-slate-700">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <input type="checkbox" ${r.completed ? 'checked' : ''} onchange="toggleReminderComplete('${r.id}')" class="w-5 h-5 accent-blue-600 rounded cursor-pointer shrink-0">
+                                <div class="truncate">
+                                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                                        ${badge}
+                                        <span class="text-xs font-medium text-slate-400 bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800">${r.category || 'General'}</span>
+                                        ${c ? `<span class="text-xs font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">${c.code}</span>` : ''}
+                                    </div>
+                                    <p class="font-bold text-sm text-white ${r.completed ? 'line-through text-slate-500' : ''} truncate">${r.title}</p>
+                                    ${due ? `<p class="text-xs text-slate-400 mt-0.5">${due.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+                                </div>
+                            </div>
+                            <button onclick="deleteReminder('${r.id}')" class="text-slate-500 hover:text-red-400 p-2 shrink-0">🗑️</button>
+                        </div>
+                    `;
+                }).join('') : `<p class="text-sm text-slate-500 italic py-6 text-center">No reminders found in this filter.</p>`;
+            }
 
             const storedPdfs = await getAllPdfsFromDB();
 
