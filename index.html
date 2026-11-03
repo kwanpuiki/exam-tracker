@@ -1003,6 +1003,21 @@
         };
 
         // Initialize Render
+        const firebaseConfig = {
+          apiKey: "AIzaSyALgnG_nHcZ0CdU-YZz0_xXzX-iryerEHs",
+          authDomain: "examtrackersync.firebaseapp.com",
+          projectId: "examtrackersync",
+          storageBucket: "examtrackersync.firebasestorage.app",
+          messagingSenderId: "184300304338",
+          appId: "1:184300304338:web:d4ec962d58a2ca316efa0b",
+          measurementId: "G-10GWVBP60P"
+        };
+
+// Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         renderAll();
     </script>
 </body>
