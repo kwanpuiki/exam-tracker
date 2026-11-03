@@ -298,26 +298,24 @@
     </div>
 
     <script>
-        // FIREBASE INITIALIZATION & CLOUD SYNC CONFIGURATION
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config)
-            : {
-                // Default fallback demo keys (Users will replace or automatically connect via global config)
-                apiKey: "AIzaSyDemoConfigKeyForExamTrackerSyncOnly",
-                authDomain: "exam-tracker-demo.firebaseapp.com",
-                projectId: "exam-tracker-demo",
-                storageBucket: "exam-tracker-demo.appspot.com",
-                messagingSenderId: "1234567890",
-                appId: "1:1234567890:web:examtrackerdemokey"
-            };
+        // FIREBASE CONFIGURATION & COMPAT SDK INITIALIZATION
+        const firebaseConfig = {
+          apiKey: "AIzaSyALgnG_nHcZ0CdU-YZz0_xXzX-iryerEHs",
+          authDomain: "examtrackersync.firebaseapp.com",
+          projectId: "examtrackersync",
+          storageBucket: "examtrackersync.appspot.com",
+          messagingSenderId: "184300304338",
+          appId: "1:184300304338:web:d4ec962d58a2ca316efa0b",
+          measurementId: "G-10GWVBP60P"
+        };
 
-        // Initialize Firebase
+        // Initialize Firebase Compat
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'exam-tracker-app';
+        const appId = 'exam-tracker-app';
 
         let currentUser = null;
         let unsubscribeRealtime = null;
@@ -378,7 +376,7 @@
                 userAvatar.innerText = (user.displayName || user.email)[0].toUpperCase();
                 logoutBtn.classList.remove('hidden');
 
-                // Attach Cloud Firestore Realtime Sync Listener (Using strict path rule)
+                // Attach Cloud Firestore Realtime Sync Listener
                 const docRef = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('userData').doc('mainState');
                 
                 unsubscribeRealtime = docRef.onSnapshot((docSnap) => {
@@ -393,7 +391,6 @@
                         saveLocalOnly();
                         renderAll();
                     } else {
-                        // Push initial state to cloud
                         saveData();
                     }
                 }, (error) => {
@@ -1002,25 +999,8 @@
             saveData();
         };
 
-        // Initialize Render
-        const firebaseConfig = {
-          apiKey: "AIzaSyALgnG_nHcZ0CdU-YZz0_xXzX-iryerEHs",
-          authDomain: "examtrackersync.firebaseapp.com",
-          projectId: "examtrackersync",
-          storageBucket: "examtrackersync.firebasestorage.app",
-          messagingSenderId: "184300304338",
-          appId: "1:184300304338:web:d4ec962d58a2ca316efa0b",
-          measurementId: "G-10GWVBP60P"
-        };
-
-// Initialize Firebase
-          if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        renderAll()
+        // Initial Render Call
+        renderAll();
     </script>
 </body>
 </html>
