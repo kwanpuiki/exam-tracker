@@ -1014,11 +1014,13 @@
         };
 
 // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        renderAll();
+
+        renderAll()
     </script>
 </body>
 </html>
